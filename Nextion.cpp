@@ -113,22 +113,28 @@ void Nextion::setLedState(topMidBottmType whichLed, uint8_t which/*0..7*/, onOff
 void Nextion::setNextionLeds(topMidBottmType which) {   // on the display
 
 	switch (which) {
-	case top:
-		_s->print("page0.TopLed.val=");
-		break;
-	case mid:
-		_s->print("page0.MidLed.val=");
-		break;
-	case bottom:
-		_s->print("page0.BotmLed.val=");
-		break;
+		case top:
+			_s->print("page0.TopLed.val=");
+			break;
+		case mid:
+			_s->print("page0.MidLed.val=");
+			break;
+		case bottom:
+			_s->print("page0.BotmLed.val=");
+			break;
+		default:
+			break;
 	}
+#ifdef debug
 	_s->print(nextionLeds[which]);
+	Serial.print(which);  Serial.println(nextionLeds[which]);
+#endif
 	_s->print("\xFF\xFF\xFF");
 }
 
 void Nextion::clearLeds() {
-	for (uint8_t n = top; n < bottom; n++) {
+
+	for (uint8_t n = top; n <= bottom; n++) {
 		nextionLeds[n] = 0;
 		setNextionLeds((topMidBottmType)n);
 	}
@@ -255,7 +261,8 @@ bool Nextion::reset(uint32_t br){
 	_s->print("rest\xFF\xFF\xFF");
 	_s->flush();
 
-	if (baudRate != 9600) setNextionBaud(resetNextionBaud);
+	setNextionBaud(resetNextionBaud);
+	baudRate = 9600;
 
 	nextionTime = 0;
 	while ((nextionTime < waitFor1stCharTime) && (_s->available() < 1)) {  // wait for first character of reply to appear

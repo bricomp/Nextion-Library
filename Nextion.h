@@ -304,7 +304,7 @@ class Nextion {
 
 /********************************************************************************************
 *		setNextionLeds actually sends command to Nextion to change the state of				*
-*		which leds ( top, middle or bottom row ).											*
+*		which leds ( top, middle or bottom row ) set with setLedState function.				*
 *-------------------------------------------------------------------------------------------*
 *       Usage:   setNextionLeds( top );													*
 *********************************************************************************************/
