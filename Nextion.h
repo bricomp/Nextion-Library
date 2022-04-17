@@ -1,3 +1,5 @@
+#ifndef NextionLib_h
+#define NextionLib_h
 /*
  The MIT License (MIT)
   Copyright (c) 2022 Robert E Bridges
@@ -59,8 +61,6 @@ Revision		    Date		Author			Description
   1.1			17/04/2022	Robert E Bridges	Added printMoreTextToNextion and improved explanation.
   */
 
-#ifndef NextionLib_h
-#define NextionLib_h
 
 #include "Arduino.h"
 
@@ -314,7 +314,7 @@ class Nextion {
 *		clearLeds sets the leds state variable to all (top, middle and bottom) off.			*
 *       Uses setNextionLeds to send command to update all rows on Nextion.					*
 *********************************************************************************************/
-/**/	void clearLeds();
+		void clearLeds();
 
 /********************************************************************************************
 *		printTextToNextion - Sends Text to Nextion to be placed in variable					*
@@ -337,7 +337,7 @@ class Nextion {
 *	       Usage:   printMoreTextToNextion( "This is a load of text for page1", true );		*
 *		NOTE: DO NOT use this without first using printTextToNextion( "text", false );		*
 *********************************************************************************************/
-		void printMoreTextToNextion(const char* p, bool transmit) {
+		void printMoreTextToNextion(const char* p, bool transmit);
 
 /********************************************************************************************
 *		printNumericText - Sends number to Nextion. This command MUST have been preceeded   *
@@ -497,7 +497,7 @@ class Nextion {
 
 		elapsedMillis nextionTime;  // Just used for internal counting purposes.
 
-private:
+	private:
 
 	// variable for the serial stream
 	Stream* _s;
