@@ -2,7 +2,7 @@
 #include <Nextion.h>
 #include <Stream.h>
 
-#define debugz
+#define debugv
 Nextion::Nextion(Stream* s) 
 {
 	_s = s;
@@ -95,19 +95,22 @@ void Nextion::setLedState(topMidBottmType whichLed, uint8_t which/*0..7*/, onOff
 
 	uint16_t ledState;
 	uint16_t mask;
+	uint16_t leds;
 
 	ledState = state;
-	mask = 0b011;
+	leds	 = nextionLeds[whichLed];
+	mask     = 0b011;
 
 	if (which > 0) {
-		which <<= 1;					// multiply which by 2 since led sate occupies 2 bits
+		which    <<= 1;					// multiply which by 2 since led sate occupies 2 bits
 		ledState <<= which;				// move state - put it over the leds that need switching
-		mask <<= which;				// ditto mask - as above
+		mask     <<= which;				// ditto mask - as above
 	}
 
-	mask = ~mask;				// flip the bits
-	ledState &= mask;				// AND ledState with mask to turn the led on/off/flash
-	nextionLeds[whichLed] |= ledState;	// OR the leds with ledState - put the led value into the leds number
+	mask  = ~mask;						// flip the bits
+	leds &= mask;						// AND leds with mask to clear a space for the ledState
+	leds |= ledState;					// OR leds with led state to insert the ledstate;
+	nextionLeds[whichLed] = leds;		// put the leds back into the led array
 }
 
 void Nextion::setNextionLeds(topMidBottmType which) {   // on the display
@@ -125,11 +128,11 @@ void Nextion::setNextionLeds(topMidBottmType which) {   // on the display
 		default:
 			break;
 	}
-#ifdef debug
 	_s->print(nextionLeds[which]);
-	Serial.print(which);  Serial.println(nextionLeds[which]);
-#endif
 	_s->print("\xFF\xFF\xFF");
+#ifdef debugv
+	Serial.print(which);  Serial.print("-");  Serial.println(nextionLeds[which], BIN);
+#endif
 }
 
 void Nextion::clearLeds() {
