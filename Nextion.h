@@ -54,9 +54,9 @@
 				  page0.SetTime.val=0
 				}
 
-Revision		    Date	Author			Description
-  1.0			16/04/2022	Bridges			Initial release
-
+Revision		    Date		Author			Description
+  1.0			16/04/2022	Robert E Bridges	Initial release
+  1.1			17/04/2022	Robert E Bridges	Added printMoreTextToNextion and improved explanation.
   */
 
 #ifndef NextionLib_h
@@ -321,6 +321,7 @@ class Nextion {
 *		page0.msg.txt. If transmit is set to true the text is terminated with a "			*
 *		character and m0 is clicked to cause the screen on page1 to be updated using		*
 *		the finishNextionTextTransmittion() command (see below).							*
+*		The procedure sends page0.msg.txt=" to the Nextion followed by the text.			*
 *-------------------------------------------------------------------------------------------*
 *       Usage:   printTextToNextion( "This is a load of text for page1", true );			*
 *-------------------------------------------------------------------------------------------*
@@ -330,12 +331,22 @@ class Nextion {
 		void printTextToNextion(const char* p, bool transmit);
 
 /********************************************************************************************
+*		printMoreTextToNextion - It is the same as the printTextToNextion function except	*
+*		that the page0.msg.txt=" is NOT sent.												*
+*-------------------------------------------------------------------------------------------*
+*	       Usage:   printMoreTextToNextion( "This is a load of text for page1", true );		*
+*		NOTE: DO NOT use this without first using printTextToNextion( "text", false );		*
+*********************************************************************************************/
+		void printMoreTextToNextion(const char* p, bool transmit) {
+
+/********************************************************************************************
 *		printNumericText - Sends number to Nextion. This command MUST have been preceeded   *
 *		by the printTextToNextion command shown above. If transmit is set to true the text	*
 *		is terminated with a "character and m0 is clicked to cause the screen on page1 to	*
 *		be updated using the finishNextionTextTransmittion() command (see below).			*
 *-------------------------------------------------------------------------------------------*
 *       Usage:   printNumericText( n, true );	// where n is a uint32_t					*
+*		NOTE: DO NOT use this without first using printTextToNextion( "text", false );		*
 *********************************************************************************************/
 		void printNumericText(uint32_t num, bool transmit);
 
