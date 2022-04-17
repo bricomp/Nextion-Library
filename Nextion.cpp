@@ -328,7 +328,7 @@ uint32_t Nextion::recoverNextionComms() {
 	setNextionBaud(recoveryBaudRate);
 	gotit = commsOk();
 	if (gotit) {
-		return true;
+		return recoveryBaudRate;
 	}
 	while ( !gotit && ( baudCount < numBaudRates )) {
 		baudCount++;
