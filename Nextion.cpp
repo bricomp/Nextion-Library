@@ -135,15 +135,12 @@ void Nextion::clearLeds() {
 }
 
 void Nextion::finishNextionTextTransmittion() {
-	//	Serial.print("\"");
 	_s->print("\"");
 	_s->print("\xFF\xFF\xFF");
 	_s->print("click m0,1"); _s->print("\xFF\xFF\xFF");
 }
 
 void Nextion::printTextToNextion(const char* p, bool transmit) {
-	//Serial.print("page1.va0.txt=\"");
-	//Serial.print(p);
 	_s->print("page0.msg.txt=\"");     // was:- _s->print("page1.va0.txt=\"");
 	_s->print(p);
 	if (transmit) {
@@ -152,8 +149,15 @@ void Nextion::printTextToNextion(const char* p, bool transmit) {
 	}
 }
 
+void Nextion::printMoreTextToNextion(const char* p, bool transmit) {
+	_s->print(p);
+	if (transmit) {
+		finishNextionTextTransmittion();
+		_s->flush();
+	}
+}
+
 void Nextion::printNumericText(uint32_t num, bool transmit) {
-	//	Serial.print(num);
 	_s->print(num);
 	if (transmit) {
 		finishNextionTextTransmittion();
