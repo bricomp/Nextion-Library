@@ -117,13 +117,13 @@ void Nextion::setNextionLeds(topMidBottmType which) {   // on the display
 
 	switch (which) {
 		case top:
-			_s->print("page0.TopLed.val=");
+			_s->print("TopLed=");
 			break;
 		case mid:
-			_s->print("page0.MidLed.val=");
+			_s->print("MidLed=");
 			break;
 		case bottom:
-			_s->print("page0.BotmLed.val=");
+			_s->print("BotmLed=");
 			break;
 		default:
 			break;
@@ -535,11 +535,11 @@ void Nextion::turnNextionButton(uint8_t which, bool on) {
 }
 
 void Nextion::setHotWaterOnForMins(uint8_t howLong) {
-	_s->print("page0.HWDwnCtr.val="); _s->print(howLong); _s->print("\xFF\xFF\xFF");
+	_s->print("HWDwnCtr="); _s->print(howLong); _s->print("\xFF\xFF\xFF");
 }
 
 void Nextion::setTime(uint32_t time) {
-	_s->print("page0.SetTime.val="); _s->print(time); _s->print("\xFF\xFF\xFF");
+	_s->print("SetTime="); _s->print(time); _s->print("\xFF\xFF\xFF");
 }
 
 void Nextion::setNextionBaudRate(uint32_t br) {

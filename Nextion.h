@@ -29,8 +29,8 @@
   that pertain to the opening/closing of valves. This can be used as an example as to how to use/develop
   the Library.
   I mostly communicate with the nextion through the passing of data into/from numeric variables.
-  I have a TimerEvent which runs at 1 second intervals, slow I know but fast enough for my current needs.
-  When, for example this timer notices that the numeric variable "SetTime.val" is not zero it takes the value
+  I have a TimerEvent which runs at 600mS intervals, slow I know but fast enough for my current needs.
+  When, for example this timer notices that the numeric variable "SetTime" is not zero it takes the value
   from this variable and sets the time. The format of the data in this variable is (in HEX) "HHMMSS".
   After having set the time the variable is set back to 0 again.
   Other variables are interrogated and responded to in a similar way by the code for this Timer Event.
@@ -40,25 +40,26 @@
   Below is the Nextion code snippet to set the RTC time.
 
 				//=================================
-				//Set RTC time if SetTimeVar >0
+				//Set RTC time if SetTime > 0  NOTE: Variables declared in Nextion Programs.s
 				//=================================
-				if(page0.SetTime.val!=0)
+				if(SetTime!=0)
 				{
-				  xx.val=page0.SetTime.val
-				  xx.val=xx.val>>16
-				  rtc3=xx.val				// Set the hour
-				  xx.val=page0.SetTime.val
-				  xx.val=xx.val&0xFF00
-				  xx.val=xx.val>>8			// Set the minutes
-				  rtc4=xx.val
-				  xx.val=page0.SetTime.val&0xFF
-				  rtc5=xx.val				// Set the seconds
-				  page0.SetTime.val=0
+				  xx=SetTime
+				  xx=xx>>16
+				  rtc3=xx				// Set the hour
+				  xx=SetTime
+				  xx=xx&0xFF00
+				  xx=xx>>8				// Set the minutes
+				  rtc4=xx
+				  xx=SetTime&0xFF
+				  rtc5=xx				// Set the seconds
+				  SetTime=0
 				}
 
 Revision		    Date		Author			Description
-  1.0			16/04/2022	Robert E Bridges	Initial release
-  1.1			17/04/2022	Robert E Bridges	Added printMoreTextToNextion and improved explanation.
+  1.00			16/04/2022	Robert E Bridges	Initial release
+  1.10			17/04/2022	Robert E Bridges	Added printMoreTextToNextion and improved explanation.
+  1.15			18/04/2022	Robert E Bridges	Changed to reflect Nextion use of Global Variables in Program.s
   */
 
 
