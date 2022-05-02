@@ -2,20 +2,20 @@
 #include <Nextion.h>
 #include <Stream.h>
 
-#define debugv
+#define debugvz
 Nextion::Nextion(Stream* s) 
 {
 	_s = s;
 }
 
-Nextion::setNextionBaudCallbackFunc setNextionBaud;
+Nextion::setNextionBaudCallbackFunc SetTeensyBaud;
 bool	 nextionAutoBaud = false;
 Nextion::nextionTurnValveOnOffCallbackFunc turnValveOnOrOff;
 
 void Nextion::begin(uint32_t br, Nextion::setNextionBaudCallbackFunc func = nullptr) {
 	baudRate = br;
 	if (func) {
-		setNextionBaud = func;
+		SetTeensyBaud = func;
 		nextionAutoBaud = true;
 	}
 };
@@ -31,6 +31,7 @@ bool Nextion::getReply() {
 
 	if (_s->available()) {
 
+		nextionError = false;
 		nextionEvent.id = _s->read();
 
 		switch (nextionEvent.id) {
@@ -79,7 +80,12 @@ bool Nextion::getReply() {
 			}
 			else
 			{
-
+				nextionError = true;
+				errorCode	 = invalidNumCharsReturned;
+			}
+			if ((nextionEvent.id >= invalidInstruction) && (nextionEvent.id <= serialBufferOverflow)) {
+				nextionError = true;
+				errorCode	 = nextionEvent.id;
 			}
 		}
 		if ((nextionEvent.id == 0x67) || (nextionEvent.id == 0x68)) {
@@ -143,13 +149,25 @@ void Nextion::clearLeds() {
 	}
 }
 
+#define debugtz
+
 void Nextion::finishNextionTextTransmittion() {
-	_s->print("\"");
-	_s->print("\xFF\xFF\xFF");
+#ifdef debugt
+	Serial.print("\"\xFF\xFF\xFF");
+	Serial.print("click m0,1"); Serial.print("\xFF\xFF\xFF");
+	Serial.println(" -- finishNextionTextTransmittion");
+#endif
+
+	_s->print("\"\xFF\xFF\xFF");
 	_s->print("click m0,1"); _s->print("\xFF\xFF\xFF");
 }
 
 void Nextion::printTextToNextion(const char* p, bool transmit) {
+#ifdef debugt
+	Serial.print("printTextToNextion: ");
+	Serial.print("page0.msg.txt=\"");
+	Serial.print(p);
+#endif
 	_s->print("page0.msg.txt=\"");     // was:- _s->print("page1.va0.txt=\"");
 	_s->print(p);
 	if (transmit) {
@@ -159,6 +177,9 @@ void Nextion::printTextToNextion(const char* p, bool transmit) {
 }
 
 void Nextion::printMoreTextToNextion(const char* p, bool transmit) {
+#ifdef debugt
+	Serial.print(p);
+#endif
 	_s->print(p);
 	if (transmit) {
 		finishNextionTextTransmittion();
@@ -167,6 +188,9 @@ void Nextion::printMoreTextToNextion(const char* p, bool transmit) {
 }
 
 void Nextion::printNumericText(uint32_t num, bool transmit) {
+#ifdef debugt
+	Serial.print(num);
+#endif
 	_s->print(num);
 	if (transmit) {
 		finishNextionTextTransmittion();
@@ -175,26 +199,85 @@ void Nextion::printNumericText(uint32_t num, bool transmit) {
 }
 
 void Nextion::printCommandOrErrorTextMessage(const char* commandOrError, const char* textMessage, bool transmit) {
+#ifdef debugt
+	Serial.print("printCommandOrErrorTextMessage: ");
+#endif
 	printTextToNextion(commandOrError, false);
+#ifdef debugt
+	Serial.print(textMessage);
+#endif
 	_s->print(textMessage);
 	if (transmit) {
 		finishNextionTextTransmittion();
 		_s->flush();
 	}
 }
-//=====================================================================================================
+
+/********************************************************************************************
+*		preserveTopTextLine() - Top text line writing inhibited.							*
+*-------------------------------------------------------------------------------------------*
+*		All general text commands do not use top line if this command actuated.           	*
+*********************************************************************************************/
+void Nextion::preserveTopTextLine() {
+	_s->print("topScrlTxtLn=18\xFF\xFF\xFF");
+}
+
+/********************************************************************************************
+*		writeToTopTextLine(const char* textMessage)											*
+*********************************************************************************************/
+#define debugthisz
+void Nextion::writeToTopTextLine(const char* textMessage) {
+#ifdef debugthis
+	Serial.print("page1.TopTextLn.txt=\"");
+	Serial.print(textMessage);
+	Serial.print("\"\xFF\xFF\xFF");
+#endif
+	_s->print("page1.TopTextLn.txt=\"");
+	_s->print(textMessage);
+	_s->print("\"\xFF\xFF\xFF");
+};
+
+/********************************************************************************************
+*		releaseTopTextLine() - Allows writing to the Top Text Line							*
+*-------------------------------------------------------------------------------------------*
+*		All general text commands can use top line again (Default Setting).			    	*
+*********************************************************************************************/
+void Nextion::releaseTopTextLine() {
+	_s->print("topScrlTxtLn=19\xFF\xFF\xFF");
+}
+
+/********************************************************************************************
+*		clearTextScreen() - Clears the Nextion Text Screen (page1)							*
+*-------------------------------------------------------------------------------------------*
+*		If the Top Line is preserved that is not cleared, use clearTopTextLine instead.    	*
+*********************************************************************************************/
+void Nextion::clearTextScreen() {
+	_s->print("click ClrScr,1\xFF\xFF\xFF");
+};
+
+/********************************************************************************************
+*		clearTopTextLine() - Clears the Nextion Text Screen Top Text Line					*
+*-------------------------------------------------------------------------------------------*
+*		If the Top Line is preserved that is not cleared, use clearTopTextLine instead.    	*
+*********************************************************************************************/
+void Nextion::clearTopTextLine() {
+	_s->print("page1.TopTextLn.txt=\"\"\xFF\xFF\xFF");
+};
+
 void Nextion::clearBuffer() {
 
 	unsigned long amt = millis();
 
 	while (_s->available()) {
 		_s->read();
+		delay(1);
 		if ((millis() - amt) > 5000) {
 			Serial.println(F("runaway"));
 			break;
 		}
 	}
 }
+#define debugcz
 
 bool Nextion::commsOk() {
 	bool ok = false;
@@ -204,33 +287,18 @@ bool Nextion::commsOk() {
 	_s->print("sendme\xFF\xFF\xFF");
 	_s->flush();
 	delay(10);
-#ifdef debugw
+#ifdef debugc
 	delay(10);
 //	Serial.print("in commsOk ");
 #endif
 	ok = getReply();
-#ifdef debug
-//	if (ok) Serial.println("OK"); else Serial.println("Doh");
+#ifdef debugc
+	if (ok) Serial.println("OK"); else Serial.println("Doh");
 #endif
 	return ok;
-/*	if (getReply()) {
-		Serial.print("Id: "); Serial.print(nextionEvent.id,HEX);
-		if (nextionEvent.id == invalidVarNameAttrib) {
-			delay(10);
-			_s->print("sendme\xFF\xFF\xFF");
-			delay(100);
-			nextionEvent.id = 0;
-			getReply();
-			Serial.print(" Id: "); Serial.print(nextionEvent.id,HEX);
-		}
-		gotit = (nextionEvent.id == currentPageNumber);
-	} else {
-		Serial.println("Unable to get reply");
-	}
-
-	return gotit;
-*/
 }
+
+#define debugrz
 
 bool Nextion::reset(uint32_t br){
 /*
@@ -262,9 +330,9 @@ bool Nextion::reset(uint32_t br){
 	clearBuffer();
 	_s->flush();
 	_s->print("rest\xFF\xFF\xFF");
-	_s->flush();
+//	_s->flush();
 
-	setNextionBaud(resetNextionBaud);
+	SetTeensyBaud(resetNextionBaud);
 	baudRate = 9600;
 
 	nextionTime = 0;
@@ -278,6 +346,11 @@ bool Nextion::reset(uint32_t br){
 
 	delay(100);
 	len = _s->available();
+	/*
+	* DO NOT BE TEMPTED TO USE getReply() instead of this code.
+	* Nextion Reset returns 0x00 as the first character. 
+	* That is a Nextion error code decoded by getReply()
+	*/
 	_s->readBytes((char*)&nextionEvent, len);
 	if ( (len != resetReplyCharCount) || !( (nextionEvent.id == 0) && (nextionEvent.resetReply.startup4Bytes == 0x0FFFF0000) && (nextionEvent.resetReply.startupByte == 0x0FF) && (nextionEvent.resetReply.readyReply == 0x0FFFFFF88 ))) {
 		Serial.print("len= "); Serial.println(len);
@@ -302,23 +375,27 @@ bool Nextion::reset(uint32_t br){
 	switch (br) {
 	case 0:				// don't bother chainging Baud Rate
 		baud = resetNextionBaud;
-#ifdef debug
+#ifdef debugr
 		Serial.println("Using Reset Baud");
 #endif
 		break;
 	case 1:
 		baud = savedBaud;
-#ifdef debug
+#ifdef debugr
 		Serial.println("Using Previous Baud");
 #endif
 	default:
-#ifdef debug
+#ifdef debugr
 		Serial.println("Changing Baud Rate");
 #endif
 		baud = br;
 		break;
 	}
 	if (baud != 9600) {
+#ifdef debugt
+		Serial.print("About to set Nextion and Teensy baud rate to ");
+		Serial.println(baud);
+#endif
 
 		setNextionBaudRate(baud);
 
@@ -329,8 +406,12 @@ bool Nextion::reset(uint32_t br){
 	}
 
 	delay(500);
+#ifdef debugr
+	Serial.println("About to check commsOk()");
+#endif
 	return commsOk();
 }
+#define debugrcz
 
 uint32_t recoveryBaudRates[] = { 2400, 4800, 9600, 19200, 31250, 38400, 57600, 115200, 230400, 250000, 256000, 512000, 921600 };
 uint8_t  numBaudRates		 = sizeof(recoveryBaudRates) / sizeof(uint32_t);
@@ -339,7 +420,7 @@ uint32_t Nextion::recoverNextionComms() {
 	uint8_t baudCount = 0; // numBaudRates;
 	bool gotit		  = false;
 
-	setNextionBaud(recoveryBaudRate);
+	SetTeensyBaud(recoveryBaudRate);
 	gotit = commsOk();
 	if (gotit) {
 		return recoveryBaudRate;
@@ -347,23 +428,64 @@ uint32_t Nextion::recoverNextionComms() {
 	while ( !gotit && ( baudCount < numBaudRates )) {
 		baudCount++;
 		if (recoveryBaudRates[baudCount] != recoveryBaudRate) {  // No point in trying what we have already done.
-			setNextionBaud(recoveryBaudRates[baudCount]);
+			SetTeensyBaud(recoveryBaudRates[baudCount]);
 			delay(10);
 			gotit = commsOk();
-#ifdef debug
-			//		Serial.print("Id: ");
-			//		Serial.println(nextionEvent.id, HEX);
+#ifdef debugrc
+					Serial.print("Id: ");
+					Serial.println(nextionEvent.id, HEX);
 #endif
 		}
 	}
 	if (gotit) {
 		recoveryBaudRate = recoveryBaudRates[baudCount];
+		baudRate		 = recoveryBaudRate;
 		return recoveryBaudRate;
 	} else
 	{
 		return 0;
 	}
 };
+
+bool Nextion::GetNextionString() {
+	elapsedMillis t;
+	bool		  gotFF = false;
+	uint8_t		  fFCount = 0;
+	char		  c;
+
+	if (_s->available()) {
+		txtBufCharPtr = 0;
+		while (_s->available() && (fFCount < 3)) {
+			c = _s->read();
+			gotFF = (c == 0xFF);
+			if (gotFF) {
+				fFCount++;
+			}
+			else
+			{
+				fFCount = 0;
+			}
+			if (txtBufCharPtr >= txtBufSize) {
+				Serial.print(c);
+			}
+			else
+			{
+				txtBufPtr[ txtBufCharPtr ] = c;
+				txtBufCharPtr++;
+			}
+			t = 0;
+			while (!_s->available() && t < 3) {}
+			//			delay(3);
+		}
+		if (txtBufCharPtr >= txtBufSize) {
+			Serial.println();
+		}else
+		{
+			txtBufPtr[txtBufCharPtr] = '\0';
+		}
+	}
+	return (fFCount == 3);
+}
 
 bool Nextion::respondToReply() {   //returns true if something needs responding to
 	bool     needsResponse = true;
@@ -427,6 +549,10 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 		break;
 	case stringDataEnclosed:
 		//		Serial.println("String Data Enclosed");
+		if (!GetNextionString()) {
+			nextionError = true;
+			errorCode    = invalidNumCharsReturned;
+		};
 		break;
 	case numericDataEnclosed:
 
@@ -452,7 +578,7 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 				needsResponse = false;
 				break;
 			case 0xFA00: //Nextion Set baudrate back to 9600
-				setNextionBaud(9600);
+				SetTeensyBaud(9600);
 				needsResponse = false;
 			default:
 				Serial.print("Some other NumericDataEnclosed data|: ");
@@ -489,28 +615,33 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 }
 
 void Nextion::printAnyReturnCharacters(uint32_t nextionTime, uint8_t id) {
-	bool	gotFF = false;
-	uint8_t fFCount = 0;
-	char	c;
+	elapsedMillis t;
+	bool		  gotFF = false;
+	uint8_t		  fFCount = 0;
+	char		  c;
 
 	if (_s->available()) {
-		Serial.println(nextionTime);
-		Serial.print(" id: "); Serial.print(id); Serial.print(" ");
+		Serial.println();
+		Serial.print("NTime: ");
+		Serial.print(nextionTime);
+		Serial.print(" id:("); Serial.print(id); Serial.print(") ");
 		while (_s->available()) {
 			c = _s->read();
 			gotFF = (c == 0xFF);
 			if (gotFF) {
 				fFCount++;
-			}
-			else
+			}else
 			{
 				fFCount = 0;
 			}
 			Serial.print(c, HEX); Serial.print(" ");
 			if (fFCount == 3) {
 				gotFF = false;
-				Serial.println();
+				Serial.print(" -- ");
 			}
+			t = 0;
+			while (!_s->available() && t < 3) {}
+//			delay(3);
 		}
 		Serial.println();
 	}
@@ -549,10 +680,64 @@ void Nextion::setNextionBaudRate(uint32_t br) {
 	_s->print(br);
 	_s->print("\xFF\xFF\xFF");
 	_s->flush();
-	if (nextionAutoBaud) setNextionBaud(br);
+	if (nextionAutoBaud) SetTeensyBaud(br);
 };
 
+void Nextion::setBackLight(uint32_t backLight) {
+	backLight = ( backLight % 100 );
+	_s->print("dim="); _s->print(backLight); _s->print("\xFF\xFF\xFF");
+}
 
+#define debug2
+int32_t Nextion::getNumVarValue(const char* varName) {
+	elapsedMillis n;
+	bool		  ok = false;
+	rep7IntType	  val;
+	uint8_t       tempStore;
 
+#ifdef debug2
+	_s->print("get "); _s->print(varName); _s->print("\xFF\xFF\xFF");
+#endif
+	Serial.print("get "); Serial.print(varName); Serial.print("\xFF\xFF\xFF");
+	while ((n < 100) && (!ok)) {
+		ok = getReply();
+	}
+	if (ok) {
+		val		  = nextionEvent.reply7int;
+//		tempStore = val.ans[0];	val.ans[0] = val.ans[3]; val.ans[3] = tempStore;
+//		tempStore = val.ans[1];	val.ans[1] = val.ans[2]; val.ans[2] = tempStore;
+	}
+	return val.number32bitInt;
+}
 
+#define debug1
+bool Nextion::setNumVarValue(const char* varName, int32_t var) {
+
+	elapsedMillis n;
+	bool		  ok = false;
+#ifdef debug1
+	Serial.print(varName); Serial.print("="); Serial.print(var); Serial.print("\xFF\xFF\xFF");
+#endif
+	_s->print(varName); _s->print("="); _s->print(var); _s->print("\xFF\xFF\xFF");
+	while ((n < 100) && (!ok)) {
+		ok = !getReply();
+	}
+	return ok;
+};
+
+bool Nextion::turnDebugOn(bool on) {
+	return setNumVarValue("debug", on);
+}
+
+bool Nextion::turnScreenDimOn(bool on) {
+	return setNumVarValue("dimAllowed", on);
+};
+
+/********************************************************************************************
+*		Set the TextBuffer to be used for Text Returned From Nextion					    *
+*********************************************************************************************/
+void Nextion::setTextBuffer(const char* textMessage, uint8_t textBufSize) {
+	txtBufPtr  = textMessage;
+	txtBufSize = textBufSize;
+};
 
