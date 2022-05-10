@@ -74,8 +74,13 @@ Revision		    Date		Author			Description
 											setNumVarValue
   1.25	01/05/2022	Robert E Bridges	- Completed respondToReply. Now handles the return of Text from the Nextion.
 										- Added setTextBuffer. Adds a text buffer where text data is placed from Nextion.
-	*/
-
+  1.30	08/05/2022	Robert E Bridges	- Added askSerialBufferClear      use   THIS
+											and isSerialBufferClear      before THIS
+  1.35	09/05/2022	Robert E Bridges	- Added setBkcmdLevel and handling of successful command completion when bkcmd = 1 or 3.
+											see setBkcmdLevel for explanation.
+  1.40	10/05/2022	Robert E Bridges	- Added lastComdCompletedOk as a complement to setBkcmdLevel above.
+										- Added timeout to getReply
+*/
 
 #include "Arduino.h"
 
@@ -265,8 +270,19 @@ const uint8_t serialBufferOverflow		= 0x24;	//	always		0x24 0xFF 0xFF 0xFF						
 */
 const uint8_t invalidNumCharsReturned   = 0x3F;
 
-const uint8_t boilerButton	= 5;
-const uint8_t hwButton		= 6;
+enum bkcmdStateType {
+	noReturn,//	= 0,		
+	onSuccess,	// = 1,
+	onFailure,	// = 2 Default
+	always		// = 3
+};
+
+//uint8_t bollocks;// bkcmd = top;// onFailure;		// Nextion bkcmd Value
+
+const uint8_t  boilerButton	= 5;
+const uint8_t  hwButton		= 6;
+
+//uint8_t newvar;
 
 class Stream;
 
@@ -281,7 +297,9 @@ class Nextion {
 		const uint32_t	resetNextionBaud = baudRate;
 		uint32_t		recoveryBaudRate = baudRate;		// used for recovery when changing baud rate does not work
 		bool			nextionError	 = false;
+		bool			comdExecOk		 = false;			// only used for bkcmd = 1 or 3
 		uint8_t			errorCode        = instructionSuccess;
+		bkcmdStateType  bkcmd			 = onFailure;
 
 		nextionEventType nextionEvent;
 
@@ -303,10 +321,28 @@ class Nextion {
 		void begin(uint32_t br, setNextionBaudCallbackFunc func = nullptr);
 
 /********************************************************************************************
-*		setValveCallBack(nextionTurnValveOnOffCallbackFunc func) - passes the Nextion the   *
-*		call back function	tu turn a valve on or off										*
+*		setBkCmdLevel(bkcmdStateType level) - Sets Nextion bkcmd value						*
+*-------------------------------------------------------------------------------------------*
+*		The default value is onFailure (2)													*
+*		When set to 1 or 3, use the command bool lastComdCompletedOk(uint32_t timeout)		*
+*		below after a command or before the next command to determine that the (last)		*
+*		command completed ok.																*
+*       level is ONLY allowed to be 1 or 3 if compiled with #define bkcmd1or3allowed in		*
+*		Nextiopn.cpp.																		*
 *********************************************************************************************/
-		void setValveCallBack(nextionTurnValveOnOffCallbackFunc func);
+		void setBkCmdLevel(bkcmdStateType level);
+
+/********************************************************************************************
+*		lastComdCompletedOk(uint32_t timeout) - ret true/false if last comd completed ok	*
+*-------------------------------------------------------------------------------------------*
+*		This command is to be used if bkcmd level is set to 1 or 3 and ONLY where a			*
+*		command is used to set a state on the Nextion.										*
+*		Where a request for information	is sent to nextion, as in "get varName", the		*
+*		returned value is the handshake.													*
+*		If other values are used (0 or 2) it is transparent and will return true.			*
+*		This is not an indication that the command completed ok as handshaking is off.		*
+*********************************************************************************************/
+		bool lastComdCompletedOk(uint32_t timeout);
 
 /********************************************************************************************
 *		Set the Text Area to be used for the Return of Text data from Nextion               *
@@ -321,17 +357,225 @@ class Nextion {
 		void setTextBuffer(const char* textMessage, uint8_t textMessageSize);
 
 /********************************************************************************************
+*		clearBuffer() - Clears the Teensy (Nextion) serial input.							*
+*		Use where things have perhaps gone wrong and you need to clear out erroneous    	*
+*		replies.																			*
+*********************************************************************************************/
+		void clearBuffer();
+
+/********************************************************************************************
+*		commsOk() - Checks that valid communications exist with the Nextion Display.        *
+*		It sends the command "sendme\xFF\xFF\xFF" and looks for a reply. It does not look   *
+*		for the page number for a reply, because comms may have been lost due to using      *
+*       the wrong baud rate, in which case a reply might be 0x23FFFFFF - variable name      *
+*		too long or some other error reply. Instead it looks for any valid reply.			*
+*********************************************************************************************/
+		bool commsOk();
+
+/********************************************************************************************
+*		reset(baudRate) - Resets the Nextion Display and sets the baud rate to "baudRate"	*
+*-------------------------------------------------------------------------------------------*
+*		Sends a reset command to the Nextion. Sets the Teensy baud rate to 9600 if that		*
+*       baud rate NOT already in use. ( upon reset the Nextion defaults to this baud rate ) *
+*		and waits for a valid reply. The Teensy baud rate is set using the callBack			*
+*		function registered using the display.begin function.								*
+*		When a valid reply has been seen the Nextion AND Teensy have the buadRate changed	*
+*		to the baud rate passed in the function call.										*
+*		The function returns true if valid comms with the Nextion can be established.		*
+*		Sets bkcmd to onFailure (Default)													*
+*-------------------------------------------------------------------------------------------*
+*       Usage:																				*
+*		   reset() - If no baud rate is passed then the baudRate defaults to the reset 9600 *
+*		   reset(1) - Sets the Baud Rate to that in use at the entry to the Reset function. *
+*		   reset(115200) - Will do a reset and set the baudRate to 115200.					*
+*********************************************************************************************/
+		bool reset(uint32_t br = 0);
+
+/********************************************************************************************
+*		recoverNextionComms() - attempts to recover Nextion Comms once they have been lost  *
+*-------------------------------------------------------------------------------------------*
+*		First sets the Teensy baud rate to the recoverBaudRate (see setNextionBaudRate      *
+*       below). Uses the commsOK function to determine that comms have been re-established. *
+*		If that does not work then all the baud rates that the Nextion might use are cycled *
+*		through until a valid baud rate can be found.        								*
+*		Returns the value of the baud rate found.                                           *
+*		If NO valid baud rate can be found then returns 0.									*
+*********************************************************************************************/
+		uint32_t recoverNextionComms();
+
+/********************************************************************************************
 *		Check if char(s) returned from Nextion. If not do something else and come back		*
-*		later to check again.																*
+*		later to check again. Wait for timeout. Default is 0..don't wait.																*
 *-------------------------------------------------------------------------------------------*
 *		If there is a reply from Nextion then the Reply Char is received and the required   *
 *		number of following char/bytes dependent upon the value of the Id.					*
 *		The Id char is placed in nextionEvent.id.											*
 *		The remainig chars are placed in nextionEvent.reply8 ready to be decoded.			*
 *		true is returned if there is an Id char and the required number of chars			*
-*		are returned. Otherwise false is returned. Timeout is set to 1 Second				*
+*		are returned. Otherwise false is returned.											*
+*		If the first char is received within timeout a further timeout of 1 second			*
+*		is allowed for remainig characters.													*
+*		This proc does NOT get any strings returned from Nextion,Use respondToReply()		*
+*		for that.																			*
 *********************************************************************************************/
-		bool getReply();
+		bool getReply(uint8_t timeout = 0);
+
+/********************************************************************************************
+*		respondToReply() - returns true if something needs responding to.					*
+*-------------------------------------------------------------------------------------------*
+*		This is where you need to put your code. Use getReply() to get any info from the    *
+*       Nextion (see above) and this function to decode the reply and respond to it.        *
+*		It returns true if further response is needed.										*
+*-------------------------------------------------------------------------------------------*
+*		I like to have requests from the Nextion Display embedded into numbers.	Within this *
+*       code I want to turn valves on or off. The number returned by the Nextion contains   *
+*		the valve to be moved and whether it should be opened or closed (0 or 1)			*
+*		If you have handled the Nextion response fully then set needsResponse to false.     *
+*********************************************************************************************/
+		bool respondToReply();
+
+/********************************************************************************************
+*		printAnyReturnCharacters(uint32_t nextionTime, uint8_t id).							*
+*		This function is intended to be used in debugging your code. It prints out to the   *
+*		SerialUsb the value "nextionTime" and "Id", both values that might be useful in		*
+*       tracking down where your error occurred, followed by any values that are in the     *
+*		Serial input stream from the Nextion.                                    			*
+*		It might be that you have used "respondToReply", with your code in it, but still    *
+*		there is something being returned that needs to be responded to. Use this function  *
+*		to see what unexpected data is being sent from the Nextion Display.					*
+*		ALL data is output in HEX.															*
+*********************************************************************************************/
+		void printAnyReturnCharacters(uint32_t nextionTime, uint8_t id);
+
+/********************************************************************************************
+*		setNextionBaudRate(uint32_t br) - Sets the baud rate on Nextion and Teensy.			*
+*-------------------------------------------------------------------------------------------*
+*		This routine saves the current baud rate in a variable recoveryBaudRate so that    	*
+*       recoveryBaudRate can be tried first by the recoverNextionComms() function,			*
+*		thus saving some time in the recovery.												*
+*		In order for this function to work correctly it requires that the					*
+*		setNextionBaudCallbackFunc was passed to the Library with the Nextion.display.begin *
+*		function. If not it will be the responsibility of the calling program to set the	*
+*		Teensy BaudRate accordingly.														*
+*********************************************************************************************/
+		void setNextionBaudRate(uint32_t br);
+
+/********************************************************************************************
+*		setBackLight(uint32_t backLight) - Sets the display BackLight(0..100).				*
+*-------------------------------------------------------------------------------------------*
+*		Any value greater than 100 will default to 100.    									*
+*       0 is off 100 is MAX btightness.														*
+*********************************************************************************************/
+	void setBackLight(uint32_t backLight);
+
+/********************************************************************************************
+*		getNumVarValue(const char* varName) - Gets the value of Nextion Variable.			*
+*-------------------------------------------------------------------------------------------*
+*       Waits for up to 100ms for a reply. If no reply returns 0xFFFF.						*
+*       In reality this command shoud only be sent when the Nextion Serial buffer is		*
+*       otherwise any reply may be from previously stacked up Nextion commands and
+*		therefore be erroneous.																*
+*		The varName MUST exist.                           									*
+*********************************************************************************************/
+		int32_t getNumVarValue(const char* varName);
+
+/********************************************************************************************
+*		setNumVarValue(const char* varName, int32_t var ) - Sets Nextion Variable to var.	*
+*-------------------------------------------------------------------------------------------*
+*		The varName MUST exist.                           									*
+*********************************************************************************************/
+		bool setNumVarValue(const char* varName, int32_t var);
+
+/********************************************************************************************
+*		askSerialBufferClear() - Ask Nextion if Serial Buffer Clear (Empty)					*
+*-------------------------------------------------------------------------------------------*
+*       Sends "get clrBufr" to Nextion. Nextion will reply with 0xFDFD when it gets to		*
+*       this request in the SerialBuffer, indicating it has executed this last command		*
+*       in the Serial Buffer. If other commands are sent after this one the Serial			*
+*		Buffer WILL NOT BE CLEAR.															*
+*		Use the command isSerialBufferClear(), below to confirm Serial Buffer Clear.		*
+*		Requires this line "int clrBufr=65021" in Nextion Program.s							*
+*********************************************************************************************/
+		void askSerialBufferClear();
+
+/********************************************************************************************
+*		isSerialBufferClear() - Query answer from askSerialBufferClear() above				*
+*-------------------------------------------------------------------------------------------*
+*		NOTE that if other commands are stacked up which will give a reply from Nextion,	*
+*		then they will be handled by the calls to getReply and respondToReply used by		*
+*		this function. They may return a reply, but if it is NOT a Numeric reply with		*
+*		0xFDFD they will NOT return true.													*
+*********************************************************************************************/
+		bool isSerialBufferClear();
+
+/********************************************************************************************
+*		bool askSerialBufferClear(uint32_t timeout) - As above but waits for a reply		*
+*-------------------------------------------------------------------------------------------*
+*       Combines askSerialBufferClear() and isSerialBufferClear() with a timeout to        	*
+*       determine if the Nextion input Serial Buffer is Clear.                             	*
+*********************************************************************************************/
+		bool askSerialBufferClear(uint32_t timeout);
+
+/********************************************************************************************
+*		turnNextionButton(uint8_t which, bool on)											*
+*		I have Nextion buttons named Sw0..Sw6. I use this function to set the relevant      *
+*		button on (1) or off (0)															*
+*       I have ghosted this function with the phrase "turnNextionValve" since some of the   *
+*       buttons are controlling valves and it makes more sense in the code to refer to		*
+*       them as valves.																		*
+*********************************************************************************************/
+#define turnNextionValve turnNextionButton
+		void turnNextionButton(uint8_t which, bool on);
+
+/********************************************************************************************
+*		setHotWaterOnForMins(uint8_t howLong)												*
+*-------------------------------------------------------------------------------------------*
+*		This is somewhat clever. Teensy sets the hot water on and sends a command to the    *
+*		Nextion to turn off the hot water in "howLong" minutes.								*
+*       When the Nextion receives this command (via a numeric value in a Number Variable)   *
+*       it turns the display for the valve open "on" and when the timeout occurs it sends	*
+*       a command to the Teensy to turn off the hotwater. This is done via the callback		*
+*		setup via the setValveCallBack(nextionTurnValveOnOffCallbackFunc func)function.		*
+*		Thus some timing control is offloaded to the Nextion.								*
+*********************************************************************************************/
+		void setHotWaterOnForMins(uint8_t howLong);
+
+/********************************************************************************************
+*		setTime(uint32_t time) - Sets the time on the Nextion.								*
+*-------------------------------------------------------------------------------------------*
+*		The time is sent as HEX HHMMSS in the variable "page0.SetTime=time0xFF0xFF0xFF"		*
+*       When the Nextion sees that SetTime is not zero it sets the Nextion time.    		*
+*		The SetTime variable is then set to 0.												*		
+*-------------------------------------------------------------------------------------------*
+*		Usage:									        									*
+*				uint32_t time = Hours * 0x10000 + Minutes * 0x100 + Seconds					*
+*				display.setTime(time)														*
+*********************************************************************************************/
+		void setTime(uint32_t time);
+
+/********************************************************************************************
+*		turnDebugOn(bool on) - Turn Nextion debug variable on or off						*
+*-------------------------------------------------------------------------------------------*
+*		Usage:									        									*
+*		   turnDebugOn( true )  - Turn debug on              								*
+*		   turnDebugOn( false ) - Turn debug off             								*
+*********************************************************************************************/
+		bool turnDebugOn(bool on);
+
+/********************************************************************************************
+*		turnScreenDimOn(bool on) - Turn Nextion dimAllowed variable on or off				*
+*-------------------------------------------------------------------------------------------*
+*		Usage:									        									*
+*		   turnScreenDimOn( true )  - Turn Dim on              								*
+*		   turnScreenDimOn( false ) - Turn Dim off             								*
+*********************************************************************************************/
+		bool turnScreenDimOn(bool on);
+
+/********************************************************************************************
+*		setValveCallBack(nextionTurnValveOnOffCallbackFunc func) - passes the Nextion the   *
+*		call back function to turn a valve on or off										*
+*********************************************************************************************/
+		void setValveCallBack(nextionTurnValveOnOffCallbackFunc func);
 
 /********************************************************************************************
 *		setLedState - Sets the state of the leds in top, middle or bottom Row.				*
@@ -452,163 +696,13 @@ class Nextion {
 		void clearTopTextLine();
 
 /********************************************************************************************
-*		clearBuffer() - Clears the Teensy (Nextion) serial input.							*
-*		Use where things have perhaps gone wrong and you need to clear out erroneous    	*
-*		replies.																			*
-*********************************************************************************************/
-void clearBuffer();
-
-		/********************************************************************************************
-*		commsOk() - Checks that valid communications exist with the Nextion Display.        *
-*		It sends the command "sendme\xFF\xFF\xFF" and looks for a reply. It does not look   *
-*		for the page number for a reply, because comms may have been lost due to using      *
-*       the wrong baud rate, in which case a reply might be 0x23FFFFFF - variable name      *
-*		too long or some other error reply. Instead it looks for any valid reply.			*
-*********************************************************************************************/
-		bool commsOk();
-
-/********************************************************************************************
-*		reset(baudRate) - Resets the Nextion Display and sets the baud rate to "baudRate"	*
-*-------------------------------------------------------------------------------------------*
-*		Sends a reset command to the Nextion. Sets the Teensy baud rate to 9600 if that		*
-*       baud rate NOT already in use. ( upon reset the Nextion defaults to this baud rate ) *
-*		and waits for a valid reply. The Teensy baud rate is set using the callBack			*
-*		function registered using the display.begin function.								*
-*		When a valid reply has been seen the Nextion AND Teensy have the buadRate changed	*
-*		to the baud rate passed in the function call.										*
-*		The function returns true if valid comms with the Nextion can be established.		*
-*-------------------------------------------------------------------------------------------*
-*       Usage:																				*
-*		   reset() - If no baud rate is passed then the baudRate defaults to the reset 9600 *
-*		   reset(1) - Sets the Baud Rate to that in use at the entry to the Reset function. *
-*		   reset(115200) - Will do a reset and set the baudRate to 115200.					*
-*********************************************************************************************/
-		bool reset(uint32_t br = 0);
-
-/********************************************************************************************
-*		recoverNextionComms() - attempts to recover Nextion Comms once they have been lost  *
-*-------------------------------------------------------------------------------------------*
-*		First sets the Teensy baud rate to the recoverBaudRate (see setNextionBaudRate      *
-*       below). Uses the commsOK function to determine that comms have been re-established. *
-*		If that does not work then all the baud rates that the Nextion might use are cycled *
-*		through until a valid baud rate can be found.        								*
-*		Returns the value of the baud rate found.                                           *
-*		If NO valid baud rate can be found then returns 0.									*
-*********************************************************************************************/
-		uint32_t recoverNextionComms();
-
-/********************************************************************************************
-*		respondToReply() - returns true if something needs responding to.					*
-*-------------------------------------------------------------------------------------------*
-*		This is where you need to put your code. Use getReply() to get any info from the    *
-*       Nextion (see above) and this function to decode the reply and respond to it.        *
-*		It returns true if further response is needed.										*
-*-------------------------------------------------------------------------------------------*
-*		I like to have requests from the Nextion Display embedded into numbers.	Within this *
-*       code I want to turn valves on or off. The number returned by the Nextion contains   *
-*		the valve to be moved and whether it should be opened or closed (0 or 1)			*
-*		If you have handled the Nextion response fully then set needsResponse to false.     *
-*********************************************************************************************/
-		bool respondToReply();
-
-/********************************************************************************************
-*		printAnyReturnCharacters(uint32_t nextionTime, uint8_t id).							*
-*		This function is intended to be used in debugging your code. It prints out to the   *
-*		SerialUsb the value "nextionTime" and "Id", both values that might be useful in		*
-*       tracking down where your error occurred, followed by any values that are in the     *
-*		Serial input stream from the Nextion.                                    			*
-*		It might be that you have used "respondToReply", with your code in it, but still    *
-*		there is something being returned that needs to be responded to. Use this function  *
-*		to see what unexpected data is being sent from the Nextion Display.					*
-*		ALL data is output in HEX.															*
-*********************************************************************************************/
-		void printAnyReturnCharacters(uint32_t nextionTime, uint8_t id);
-
-/********************************************************************************************
-*		turnNextionButton(uint8_t which, bool on)											*
-*		I have Nextion buttons named Sw0..Sw6. I use this function to set the relevant      *
-*		button on (1) or off (0)															*
-*       I have ghosted this function with the phrase "turnNextionValve" since some of the   *
-*       buttons are controlling valves and it makes more sense in the code to refer to		*
-*       them as valves.																		*
-*********************************************************************************************/
-#define turnNextionValve turnNextionButton
-		void turnNextionButton(uint8_t which, bool on);
-
-/********************************************************************************************
-*		setHotWaterOnForMins(uint8_t howLong)												*
-*-------------------------------------------------------------------------------------------*
-*		This is somewhat clever. Teensy sets the hot water on and sends a command to the    *
-*		Nextion to turn off the hot water in "howLong" minutes.								*
-*       When the Nextion receives this command (via a numeric value in a Number Variable)   *
-*       it turns the display for the valve open "on" and when the timeout occurs it sends	*
-*       a command to the Teensy to turn off the hotwater. This is done via the callback		*
-*		setup via the setValveCallBack(nextionTurnValveOnOffCallbackFunc func)function.		*
-*		Thus some timing control is offloaded to the Nextion.								*
-*********************************************************************************************/
-		void setHotWaterOnForMins(uint8_t howLong);
-
-/********************************************************************************************
-*		setTime(uint32_t time) - Sets the time on the Nextion.								*
-*-------------------------------------------------------------------------------------------*
-*		The time is sent as HEX HHMMSS in the variable "page0.SetTime.val=time0xFF0xFF0xFF"	*
-*       When the Nextion sees that SetTime.val is not zero it sets the Nextion time. The	*
-*		SetTime.val variable is then set to 0.												*		
-*********************************************************************************************/
-		void setTime(uint32_t time);
-
-/********************************************************************************************
-*		setNextionBaudRate(uint32_t br) - Sets the baud rate on Nextion and Teensy.			*
-*-------------------------------------------------------------------------------------------*
-*		This routine saves the current baud rate in a variable recoveryBaudRate so that    	*
-*       recoveryBaudRate can be tried first by the recoverNextionComms() function,			*
-*		thus saving some time in the recovery.												*
-*		In order for this function to work correctly it requires that the					*
-*		setNextionBaudCallbackFunc was passed to the Library with the Nextion.display.begin *
-*		function. If not it will be the responsibility of the calling program to set the	*
-*		Teensy BaudRate accordingly.														*	
-*********************************************************************************************/
-		void setNextionBaudRate(uint32_t br);
-
-/********************************************************************************************
-*		setBackLight(uint32_t backLight) - Sets the display BackLight(0..100).				*
-*-------------------------------------------------------------------------------------------*
-*		Any value greater than 100 will default to 100.    									*
-*       0 is off 100 is MAX btightness.														*
-*********************************************************************************************/
-		void setBackLight(uint32_t backLight);
-
-/********************************************************************************************
-*		getNumVarValue(const char* varName) - Gets the value of Nextion Variable.			*
-*-------------------------------------------------------------------------------------------*
-*		The varName MUST exist.                           									*
-*********************************************************************************************/
-		int32_t getNumVarValue(const char* varName);
-
-/********************************************************************************************
-*		setNumVarValue(const char* varName, int32_t var ) - Sets Nextion Variable to var.	*
-*-------------------------------------------------------------------------------------------*
-*		The varName MUST exist.                           									*
-*********************************************************************************************/
-		bool setNumVarValue(const char* varName, int32_t var );
-
-/********************************************************************************************
-*		turnDebugOn(bool on) - Turn Nextion debug variable on or off						*
+*		setDaylightSavingOn( on) - Turn Nextion daylight saving variable on or off			*
 *-------------------------------------------------------------------------------------------*
 *		Usage:									        									*
-*		   turnDebugOn( true )  - Turn debug on              								*
-*		   turnDebugOn( false ) - Turn debug off             								*
+*		   setDaylightSavingOn( true )  - Turn on              								*
+*		   setDaylightSavingOn( false ) - Turn off             								*
 *********************************************************************************************/
-		bool turnDebugOn(bool on);
-
-/********************************************************************************************
-*		turnScreenDimOn(bool on) - Turn Nextion dimAllowed variable on or off				*
-*-------------------------------------------------------------------------------------------*
-*		Usage:									        									*
-*		   turnScreenDimOn( true )  - Turn Dim on              								*
-*		   turnScreenDimOn( false ) - Turn Dim off             								*
-*********************************************************************************************/
-		bool turnScreenDimOn(bool on);
+		bool setDaylightSavingOn( bool on);
 
 		elapsedMillis nextionTime;  // Just used for internal counting purposes.
 
@@ -618,10 +712,13 @@ void clearBuffer();
 
 		// variable for the serial stream
 		Stream* _s;
-		uint16_t nextionLeds[3] = { 0,0,0 };
-		uint8_t  txtBufCharPtr  = 0;
-		uint8_t  txtBufSize		= 0;
-		char     *txtBufPtr     = nullptr;
+		uint16_t nextionLeds[3]			= { 0,0,0 };
+		bool	 serialBufferClear		= true;
+		bool	 checkedComdCompleteOk	= true;		// Only used when bkcmd = 1 or 3
+		bool	 checkComdComplete		= false;	// Only used when bkcmd = 1 or 3
+		uint8_t  txtBufCharPtr			= 0;
+		uint8_t  txtBufSize				= 0;
+		char     *txtBufPtr				= nullptr;
 };
 
 #endif

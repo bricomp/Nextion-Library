@@ -2,6 +2,8 @@
 #include <Nextion.h>
 #include <Stream.h>
 
+#define bkcmd1or3allowedz
+
 #define debugvz
 Nextion::Nextion(Stream* s) 
 {
@@ -23,15 +25,17 @@ void Nextion::setValveCallBack(Nextion::nextionTurnValveOnOffCallbackFunc func) 
 	turnValveOnOrOff = func;
 };
 
-bool Nextion::getReply() {
+bool Nextion::getReply(uint8_t timeout = 0) {
 
-	elapsedMillis	timeout;
+	elapsedMillis	timeOut;
 	uint8_t			len = 255;
 	uint8_t			n;
 
-	if (_s->available()) {
+	while ((timeOut < timeout) && !_s->available()) {}
 
-		nextionError = false;
+	if (_s->available()) {
+		comdExecOk		= false;
+		nextionError	= false;
 		nextionEvent.id = _s->read();
 
 		switch (nextionEvent.id) {
@@ -66,13 +70,13 @@ bool Nextion::getReply() {
 			break;
 		}
 
-		if (nextionEvent.id == stringDataEnclosed) { // read string data
+		if (nextionEvent.id == stringDataEnclosed) { // read string data done in respondToReply()
 		}
 		else
 		{
-			timeout = 0;
+			timeOut = 0;
 			n = 0;
-			while (n < len && timeout < 10000) {
+			while (n < len && timeOut < 10000) {
 				n = _s->available();
 			};
 			if (n == len) {
@@ -136,6 +140,9 @@ void Nextion::setNextionLeds(topMidBottmType which) {   // on the display
 	}
 	_s->print(nextionLeds[which]);
 	_s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 #ifdef debugv
 	Serial.print(which);  Serial.print("-");  Serial.println(nextionLeds[which], BIN);
 #endif
@@ -159,7 +166,16 @@ void Nextion::finishNextionTextTransmittion() {
 #endif
 
 	_s->print("\"\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+	if (!lastComdCompletedOk(1000)) {
+		Serial.println("finishNextionTextTransmittion: Nextion command did NOT complete ok");
+	};
+#endif
 	_s->print("click m0,1"); _s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 }
 
 void Nextion::printTextToNextion(const char* p, bool transmit) {
@@ -220,6 +236,9 @@ void Nextion::printCommandOrErrorTextMessage(const char* commandOrError, const c
 *********************************************************************************************/
 void Nextion::preserveTopTextLine() {
 	_s->print("topScrlTxtLn=18\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 }
 
 /********************************************************************************************
@@ -235,6 +254,9 @@ void Nextion::writeToTopTextLine(const char* textMessage) {
 	_s->print("page1.TopTextLn.txt=\"");
 	_s->print(textMessage);
 	_s->print("\"\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 };
 
 /********************************************************************************************
@@ -244,6 +266,9 @@ void Nextion::writeToTopTextLine(const char* textMessage) {
 *********************************************************************************************/
 void Nextion::releaseTopTextLine() {
 	_s->print("topScrlTxtLn=19\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 }
 
 /********************************************************************************************
@@ -253,6 +278,9 @@ void Nextion::releaseTopTextLine() {
 *********************************************************************************************/
 void Nextion::clearTextScreen() {
 	_s->print("click ClrScr,1\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 };
 
 /********************************************************************************************
@@ -262,6 +290,9 @@ void Nextion::clearTextScreen() {
 *********************************************************************************************/
 void Nextion::clearTopTextLine() {
 	_s->print("page1.TopTextLn.txt=\"\"\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 };
 
 void Nextion::clearBuffer() {
@@ -333,7 +364,12 @@ bool Nextion::reset(uint32_t br){
 //	_s->flush();
 
 	SetTeensyBaud(resetNextionBaud);
-	baudRate = 9600;
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk	= true;		// Only used when bkcmd = 1 or 3
+	checkComdComplete		= false;	// Only used when bkcmd = 1 or 3
+	bkcmd					= onFailure;
+#endif
+	baudRate				= 9600;
 
 	nextionTime = 0;
 	while ((nextionTime < waitFor1stCharTime) && (_s->available() < 1)) {  // wait for first character of reply to appear
@@ -498,7 +534,8 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 	case invalidInstruction:						// = 0x00;	// bkcmd 2,3	0x00 0xFF 0xFF 0xFF		Returned when instruction sent by user has failed
 		break;
 	case instructionSuccess:						// = 0x01;	// bkcmd 1,3	0x01 0xFF 0xFF 0xFF		(ONLY SENT WHEN bkcmd = 1 or 3 )
-		Serial.println("Instruction Success");
+		comdExecOk = true;
+//		Serial.println("Instruction Success");
 		break;
 	case invalidComponentId:						// = 0x02;	// bkcmd 2,3	0x02 0xFF 0xFF 0xFF		Returned when invalid Component ID or name was used
 		break;
@@ -580,6 +617,9 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 			case 0xFA00: //Nextion Set baudrate back to 9600
 				SetTeensyBaud(9600);
 				needsResponse = false;
+			case 0xFDFD: // Indicates Nextion Serial Buffer Clear
+				serialBufferClear	= true;
+				needsResponse		= false;
 			default:
 				Serial.print("Some other NumericDataEnclosed data|: ");
 				Serial.print(nextionEvent.reply7.num[0], HEX); Serial.print(" ");
@@ -663,14 +703,23 @@ void Nextion::turnNextionButton(uint8_t which, bool on) {
 		_s->print(offChar);
 	}
 	_s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 }
 
 void Nextion::setHotWaterOnForMins(uint8_t howLong) {
 	_s->print("HWDwnCtr="); _s->print(howLong); _s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 }
 
 void Nextion::setTime(uint32_t time) {
 	_s->print("SetTime="); _s->print(time); _s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 }
 
 void Nextion::setNextionBaudRate(uint32_t br) {
@@ -680,15 +729,21 @@ void Nextion::setNextionBaudRate(uint32_t br) {
 	_s->print(br);
 	_s->print("\xFF\xFF\xFF");
 	_s->flush();
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 	if (nextionAutoBaud) SetTeensyBaud(br);
 };
 
 void Nextion::setBackLight(uint32_t backLight) {
 	backLight = ( backLight % 100 );
 	_s->print("dim="); _s->print(backLight); _s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 }
 
-#define debug2
+#define debug2z
 int32_t Nextion::getNumVarValue(const char* varName) {
 	elapsedMillis n;
 	bool		  ok = false;
@@ -696,9 +751,11 @@ int32_t Nextion::getNumVarValue(const char* varName) {
 	uint8_t       tempStore;
 
 #ifdef debug2
-	_s->print("get "); _s->print(varName); _s->print("\xFF\xFF\xFF");
-#endif
 	Serial.print("get "); Serial.print(varName); Serial.print("\xFF\xFF\xFF");
+#endif
+	nextionEvent.reply7int.number32bitInt = 0xFFFF; //=No Answer
+
+	_s->print("get "); _s->print(varName); _s->print("\xFF\xFF\xFF");
 	while ((n < 100) && (!ok)) {
 		ok = getReply();
 	}
@@ -710,7 +767,7 @@ int32_t Nextion::getNumVarValue(const char* varName) {
 	return val.number32bitInt;
 }
 
-#define debug1
+#define debug1z
 bool Nextion::setNumVarValue(const char* varName, int32_t var) {
 
 	elapsedMillis n;
@@ -722,6 +779,9 @@ bool Nextion::setNumVarValue(const char* varName, int32_t var) {
 	while ((n < 100) && (!ok)) {
 		ok = !getReply();
 	}
+#ifdef bkcmd1or3allowed
+	if (ok) checkedComdCompleteOk = !checkComdComplete;
+#endif
 	return ok;
 };
 
@@ -733,6 +793,10 @@ bool Nextion::turnScreenDimOn(bool on) {
 	return setNumVarValue("dimAllowed", on);
 };
 
+bool Nextion::setDaylightSavingOn(bool on) {
+	return setNumVarValue("bst", on);
+};
+
 /********************************************************************************************
 *		Set the TextBuffer to be used for Text Returned From Nextion					    *
 *********************************************************************************************/
@@ -741,3 +805,65 @@ void Nextion::setTextBuffer(const char* textMessage, uint8_t textBufSize) {
 	txtBufSize = textBufSize;
 };
 
+void Nextion::askSerialBufferClear() {
+	serialBufferClear = false;
+	_s->print("get clrBufr\xFF\xFF\xFF");
+};
+
+bool Nextion::askSerialBufferClear(uint32_t timeout) {
+	elapsedMillis n;
+
+	askSerialBufferClear();
+	while (!serialBufferClear && n <= timeout) {
+		isSerialBufferClear();
+	}
+	return serialBufferClear;
+};
+
+/********************************************************************************************
+*		isSerialBufferClear() - Query answer from askSerialBufferClear() above				*
+*********************************************************************************************/
+bool Nextion::isSerialBufferClear() {
+
+	if (getReply()) {
+		if (respondToReply()){}
+	}
+	return serialBufferClear;
+};
+
+/********************************************************************************************
+*		setBkCmdLevel(bkcmdStateType level) - Sets Nextion bkcmd value						*
+*-------------------------------------------------------------------------------------------*
+*		The default value is onFailure (2)													*
+*		When set to onSuccess (1) and always (3) the variable comdExecOk will be set to		*
+*		true on succesful completion of command. it is ignored for all other values.		*
+*********************************************************************************************/
+void Nextion::setBkCmdLevel(bkcmdStateType level) {
+	_s->print("bkcmd="); _s->print((uint8_t)level); _s->print("\xFF\xFF\xFF"); 
+#ifdef bkcmd1or3allowed
+	if (level == 1 || level == 3) {
+		checkedComdCompleteOk = false;
+		checkComdComplete	  = true;  // indicates need to check command(s) completed
+	}else
+	{
+		checkedComdCompleteOk = true;
+		checkComdComplete	  = false;  // indicates need to check command(s) completed
+	}
+#else
+	Serial.println("CRITICAL ERROR: bkcmd level 1 or 3 NOT allowed unless compiled with #define bkcmd1or3allowed");
+#endif
+	bkcmd				    = level;
+};
+
+bool Nextion::lastComdCompletedOk(uint32_t timeout) {
+#ifdef bkcmd1or3allowed
+	bool isOk = false;
+
+	if (!checkComdComplete || checkedComdCompleteOk) return true;
+	isOk = (getReply(timeout) && ( nextionEvent.id == instructionSuccess ));
+	checkedComdCompleteOk = true;
+	return isOk;
+#else
+	return true;
+#endif
+};
