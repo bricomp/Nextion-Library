@@ -418,7 +418,7 @@ class Nextion {
 *		This proc does NOT get any strings returned from Nextion,Use respondToReply()		*
 *		for that.																			*
 *********************************************************************************************/
-		bool getReply(uint8_t timeout = 0);
+		bool getReply(uint32_t timeout = 0);
 
 /********************************************************************************************
 *		respondToReply() - returns true if something needs responding to.					*
@@ -657,8 +657,6 @@ class Nextion {
 *		If transmit is set to true the text	is terminated with a "character and m0 is		*
 *		clicked to cause the screen on page1 to	be updated using the						*
 *		finishNextionTextTransmittion() command (see above).								*
-*-------------------------------------------------------------------------------------------*
-*       Usage:   finishNextionTextTransmittion("E", "Error setting valve state", true )	*
 *********************************************************************************************/
 		void printCommandOrErrorTextMessage(const char* commandOrError, const char* textMessage, bool transmit);
 

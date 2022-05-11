@@ -25,13 +25,14 @@ void Nextion::setValveCallBack(Nextion::nextionTurnValveOnOffCallbackFunc func) 
 	turnValveOnOrOff = func;
 };
 
-bool Nextion::getReply(uint8_t timeout = 0) {
+bool Nextion::getReply(uint32_t timeout = 0) {
 
 	elapsedMillis	timeOut;
 	uint8_t			len = 255;
 	uint8_t			n;
 
 	while ((timeOut < timeout) && !_s->available()) {}
+	comdExecOk = false;
 
 	if (_s->available()) {
 		comdExecOk		= false;
@@ -532,45 +533,47 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 	switch (nextionEvent.id) {
 
 	case invalidInstruction:						// = 0x00;	// bkcmd 2,3	0x00 0xFF 0xFF 0xFF		Returned when instruction sent by user has failed
-		break;
+
 	case instructionSuccess:						// = 0x01;	// bkcmd 1,3	0x01 0xFF 0xFF 0xFF		(ONLY SENT WHEN bkcmd = 1 or 3 )
 		comdExecOk = true;
-//		Serial.println("Instruction Success");
-		break;
+
 	case invalidComponentId:						// = 0x02;	// bkcmd 2,3	0x02 0xFF 0xFF 0xFF		Returned when invalid Component ID or name was used
-		break;
+
 	case invalidPageId:								// = 0x03;	// bkcmd 2,3	0x03 0xFF 0xFF 0xFF		Returned when invalid Page ID or name was used
-		break;
+
 	case invalidPictureId:							// = 0x04;	// bkcmd 2,3	0x04 0xFF 0xFF 0xFF		Returned when invalid Picture ID was used
-		break;
+
 	case invalidFontId:								// = 0x05;	// bkcmd 2,3	0x05 0xFF 0xFF 0xFF		Returned when invalid Font ID was used
-		break;
+
 	case invalidFileOperation:						// = 0x06;	// bkcmd 2,3	0x06 0xFF 0xFF 0xFF		Returned when File operation fails
-		break;
+
 	case invalidCrc:								// = 0x09;	// bkcmd 2,3	0x09 0xFF 0xFF 0xFF		Returned when Instructions with CRC validation fails their CRC check
-		break;
+
 	case invalidBaudRateSetting:					// = 0x11;	// bkcmd 2,3	0x11 0xFF 0xFF 0xFF		Returned when invalid Baud rate was used
-		break;
+
 	case invalidWaveformIdChan:						// = 0x12;	// bkcmd 2,3	0x12 0xFF 0xFF 0xFF		Returned when invalid Waveform ID or Channel # was used
-		break;
+
 	case invalidVarNameAttrib:						// = 0x1A;	// bkcmd 2,3	0x1A 0xFF 0xFF 0xFF		Returned when invalid Variable name or invalid attribute was used
-		break;
+
 	case invalidVarOperation:						// = 0x1B;	// bkcmd 2,3	0x1B 0xFF 0xFF 0xFF		Returned when Operation of Variable is invalid.ie: Text assignment t0.txt = abc or t0.txt = 23, 
-		break;										//													Numeric assignment j0.val = ”50? or j0.val = abc
+
 	case assignmentFailed:							// = 0x1C;	// bkcmd 2,3	0x1C 0xFF 0xFF 0xFF		Returned when attribute assignment failed to assign
-		break;
+
 	case EEPROMOperationFailed:						// = 0x1D;	// bkcmd 2,3	0x1D 0xFF 0xFF 0xFF		Returned when an EEPROM Operation has failed
-		break;
+
 	case invalidQtyParams:							// = 0x1E;	// bkcmd 2,3	0x1E 0xFF 0xFF 0xFF		Returned when the number of instruction parameters is invalid
-		break;
+
 	case ioOperationFailed:							// = 0x1F;	// bkcmd 2,3	0x1F 0xFF 0xFF 0xFF		Returned when an IO operation has failed
-		break;
+
 	case invalidEscapeChar:							// = 0x20;	// bkcmd 2,3	0x20 0xFF 0xFF 0xFF		Returned when an unsupported escape uint8_tacter is used
-		break;
+
 	case variableNameToLong:						// = 0x23;	// bkcmd 2,3	0x23 0xFF 0xFF 0xFF		Returned when variable name is too long.Max length is 29 characters: 14 for page + “.” + 14 for component.
-		break;
+
 	case serialBufferOverflow:						// = 0x24; //	3			0x24 0xFF 0xFF 0xFF		Returned when a Serial Buffer overflow occurs	Buffer will continue to receive the current instruction, all previous instructions are lost.
-//		Serial.println("Serial Buffer Overflow");
+		if (nextionEvent.id != instructionSuccess) {
+			nextionError = true;
+			errorCode	 = nextionEvent.id;
+		}
 		break;
 	case touchEvent:
 		//		Serial.println("Touch Event");
