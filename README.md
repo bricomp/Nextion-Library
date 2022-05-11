@@ -96,7 +96,7 @@ A suitable startup for your program could be as below:-
 	#define NextionDisplay Serial5
 	
 	elapsedMillis	nextionTime;
-	Nextion			display(&NextionDisplay);
+	Nextion		display(&NextionDisplay);
 	nextionBaudRate = 9600;
 	
 	void setTeensyBaud(uint32_t baud) {
@@ -142,4 +142,4 @@ A suitable startup for your program could be as below:-
 
 In the above code you will see the function `display.printAnyReturnCharacters(nextionTime, 1);` that we have not discussed yet.
 
-This function simply gathers any Nextion returned characters and prints them to the SerialUsb (Serial) port. If there is any data returned it first prints the "nextionTime"  (which is in ms) followed by the returned bytes in HEX format followed by the id. This is useful in debugging when a bad situation occurs.
+This function simply gathers any Nextion returned characters and prints them to the SerialUsb (Serial) port. If there is any data returned it first prints the "nextionTime"  (which is in ms) followed by the returned bytes in HEX format followed by id. This is useful in debugging when a bad situation occurs.
