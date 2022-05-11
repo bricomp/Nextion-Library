@@ -1,6 +1,6 @@
 # Nextion-Library
 Use this code as a framework to produce your own Nextion Library.
-See Resources for Printable Word documents.
+See Resources for Printable Word/pdf documents.
 
   Code by Robert E Bridges bob@bricomp-uk.com
   This library is intended to be used to create your own Nextion Library. Most of it is done for you. 
@@ -15,7 +15,7 @@ See Resources for Printable Word documents.
   I have a TimerEvent which runs at 600mS intervals, slow I know but fast enough for my current needs.
 
   When, for example, this timer notices that the numeric variable "SetTime" is not zero it takes the value
-  from this variable and sets the time. 
+  from this variable and sets the Nextion time. 
 
   The format of the data in this variable is (in HEX) "HHMMSS".
   After having set the time the variable is set back to 0 again.
