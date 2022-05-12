@@ -525,6 +525,7 @@ bool Nextion::GetNextionString() {
 	char		  c;
 
 	if (_s->available()) {
+		stringWaiting = false;
 		txtBufCharPtr = 0;
 		while (_s->available() && (fFCount < 3)) {
 			c = _s->read();
@@ -555,7 +556,8 @@ bool Nextion::GetNextionString() {
 			txtBufPtr[txtBufCharPtr] = '\0';
 		}
 	}
-	return (fFCount == 3);
+	stringWaiting = (fFCount == 3);
+	return stringWaiting;
 }
 
 bool Nextion::respondToReply() {   //returns true if something needs responding to
@@ -566,127 +568,127 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 
 	switch (nextionEvent.id) {
 
-	case invalidInstruction:						// = 0x00;	// bkcmd 2,3	0x00 0xFF 0xFF 0xFF		Returned when instruction sent by user has failed
+		case invalidInstruction:						// Returned when instruction sent by user has failed
 
-	case instructionSuccess:						// = 0x01;	// bkcmd 1,3	0x01 0xFF 0xFF 0xFF		(ONLY SENT WHEN bkcmd = 1 or 3 )
-		comdExecOk = true;
+		case instructionSuccess:						// (ONLY SENT WHEN bkcmd = 1 or 3 )
+			comdExecOk = true;
 
-	case invalidComponentId:						// = 0x02;	// bkcmd 2,3	0x02 0xFF 0xFF 0xFF		Returned when invalid Component ID or name was used
+		case invalidComponentId:						// Returned when invalid Component ID or name was used
 
-	case invalidPageId:								// = 0x03;	// bkcmd 2,3	0x03 0xFF 0xFF 0xFF		Returned when invalid Page ID or name was used
+		case invalidPageId:								// Returned when invalid Page ID or name was used
 
-	case invalidPictureId:							// = 0x04;	// bkcmd 2,3	0x04 0xFF 0xFF 0xFF		Returned when invalid Picture ID was used
+		case invalidPictureId:							// Returned when invalid Picture ID was used
 
-	case invalidFontId:								// = 0x05;	// bkcmd 2,3	0x05 0xFF 0xFF 0xFF		Returned when invalid Font ID was used
+		case invalidFontId:								// Returned when invalid Font ID was used
 
-	case invalidFileOperation:						// = 0x06;	// bkcmd 2,3	0x06 0xFF 0xFF 0xFF		Returned when File operation fails
+		case invalidFileOperation:						// Returned when File operation fails
 
-	case invalidCrc:								// = 0x09;	// bkcmd 2,3	0x09 0xFF 0xFF 0xFF		Returned when Instructions with CRC validation fails their CRC check
+		case invalidCrc:								// Returned when Instructions with CRC validation fails their CRC check
 
-	case invalidBaudRateSetting:					// = 0x11;	// bkcmd 2,3	0x11 0xFF 0xFF 0xFF		Returned when invalid Baud rate was used
+		case invalidBaudRateSetting:					// Returned when invalid Baud rate was used
 
-	case invalidWaveformIdChan:						// = 0x12;	// bkcmd 2,3	0x12 0xFF 0xFF 0xFF		Returned when invalid Waveform ID or Channel # was used
+		case invalidWaveformIdChan:						// Returned when invalid Waveform ID or Channel # was used
 
-	case invalidVarNameAttrib:						// = 0x1A;	// bkcmd 2,3	0x1A 0xFF 0xFF 0xFF		Returned when invalid Variable name or invalid attribute was used
+		case invalidVarNameAttrib:						// Returned when invalid Variable name or invalid attribute was used
 
-	case invalidVarOperation:						// = 0x1B;	// bkcmd 2,3	0x1B 0xFF 0xFF 0xFF		Returned when Operation of Variable is invalid.ie: Text assignment t0.txt = abc or t0.txt = 23, 
+		case invalidVarOperation:						// Returned when Operation of Variable is invalid.ie: Text assignment t0.txt = abc or t0.txt = 23, 
 
-	case assignmentFailed:							// = 0x1C;	// bkcmd 2,3	0x1C 0xFF 0xFF 0xFF		Returned when attribute assignment failed to assign
+		case assignmentFailed:							// Returned when attribute assignment failed to assign
 
-	case EEPROMOperationFailed:						// = 0x1D;	// bkcmd 2,3	0x1D 0xFF 0xFF 0xFF		Returned when an EEPROM Operation has failed
+		case EEPROMOperationFailed:						// Returned when an EEPROM Operation has failed
 
-	case invalidQtyParams:							// = 0x1E;	// bkcmd 2,3	0x1E 0xFF 0xFF 0xFF		Returned when the number of instruction parameters is invalid
+		case invalidQtyParams:							// Returned when the number of instruction parameters is invalid
 
-	case ioOperationFailed:							// = 0x1F;	// bkcmd 2,3	0x1F 0xFF 0xFF 0xFF		Returned when an IO operation has failed
+		case ioOperationFailed:							// Returned when an IO operation has failed
 
-	case invalidEscapeChar:							// = 0x20;	// bkcmd 2,3	0x20 0xFF 0xFF 0xFF		Returned when an unsupported escape uint8_tacter is used
+		case invalidEscapeChar:							// Returned when an unsupported escape character is used
 
-	case variableNameToLong:						// = 0x23;	// bkcmd 2,3	0x23 0xFF 0xFF 0xFF		Returned when variable name is too long.Max length is 29 characters: 14 for page + “.” + 14 for component.
+		case variableNameToLong:						// Returned when variable name is too long.Max length is 29 characters: 14 for page + “.” + 14 for component.
 
-	case serialBufferOverflow:						// = 0x24; //	3			0x24 0xFF 0xFF 0xFF		Returned when a Serial Buffer overflow occurs	Buffer will continue to receive the current instruction, all previous instructions are lost.
-		if (nextionEvent.id != instructionSuccess) {
-			nextionError = true;
-			errorCode	 = nextionEvent.id;
-		}
-		break;
-	case touchEvent:
+		case serialBufferOverflow:						// Returned when a Serial Buffer overflow occurs	Buffer will continue to receive the current instruction, all previous instructions are lost.
+			if (nextionEvent.id != instructionSuccess) {
+				nextionError = true;
+				errorCode	 = nextionEvent.id;
+			}
+			break;
+		case touchEvent:
 		//		Serial.println("Touch Event");
-		break;
-	case currentPageNumber:
+			break;
+		case currentPageNumber:
 		//		Serial.println("Current Page Number");
-		break;
-	case touchCoordinateAwake:
+			break;
+		case touchCoordinateAwake:
 		//		Serial.println("Touch Coordinate Awake");
-		break;
-	case touchCoordinateSleep:
+			break;
+		case touchCoordinateSleep:
 		//		Serial.println("Touch Coordinate Sleep");
-		break;
-	case stringDataEnclosed:
+			break;
+		case stringDataEnclosed:
 		//		Serial.println("String Data Enclosed");
-		if (!GetNextionString()) {
-			nextionError = true;
-			errorCode    = invalidNumCharsReturned;
-		};
-		break;
-	case numericDataEnclosed:
+			if (!GetNextionString()) {
+				nextionError = true;
+				errorCode    = invalidNumCharsReturned;
+			};
+			break;
+		case numericDataEnclosed:
 
-		zz = nextionEvent.reply7.num[0];  // (uint16_t)nextionEvent.reply7.ans[0] * 256 + (uint16_t)nextionEvent.reply7.ans[1];
-		switch (zz) {
-			case 0x0000: //Switch/Valve 0 off
-			case 0x0001: //Switch/Valve 0 on
-			case 0x0100: //Switch/Valve 1 off"
-			case 0x0101: //Switch/Valve 1 on
-			case 0x0200: //Switch/Valve 2 off
-			case 0x0201: //Switch/Valve 2 on
-			case 0x0300: //Switch/Valve 3 off
-			case 0x0301: //Switch/Valve 3 on
-			case 0x0400: //Switch/Valve 4 off
-			case 0x0401: //Switch/Valve 4 on
-			case 0x0500: //Turn Boiler Off
-			case 0x0501: //Turn Boiler On
-			case 0x0600: //Turn Hot Water Off
-			case 0x0601: //Turn Hot Water On
-				valve = zz / 0x100;
-				how = ((zz % 0x100) == 1);
-				turnValveOnOrOff(valve, how);
-				needsResponse = false;
-				break;
-			case 0xFA00: //Nextion Set baudrate back to 9600
-				SetTeensyBaud(9600);
-				needsResponse = false;
-			case 0xFDFD: // Indicates Nextion Serial Buffer Clear
-				serialBufferClear	= true;
-				needsResponse		= false;
-			default:
-				Serial.print("Some other NumericDataEnclosed data|: ");
-				Serial.print(nextionEvent.reply7.num[0], HEX); Serial.print(" ");
-				Serial.print(nextionEvent.reply7.num[1], HEX); Serial.println();
-				break;
-		}
-		break;
+			zz = nextionEvent.reply7.num[0];  // (uint16_t)nextionEvent.reply7.ans[0] * 256 + (uint16_t)nextionEvent.reply7.ans[1];
+			switch (zz) {
+				case 0x0000: //Switch/Valve 0 off
+				case 0x0001: //Switch/Valve 0 on
+				case 0x0100: //Switch/Valve 1 off"
+				case 0x0101: //Switch/Valve 1 on
+				case 0x0200: //Switch/Valve 2 off
+				case 0x0201: //Switch/Valve 2 on
+				case 0x0300: //Switch/Valve 3 off
+				case 0x0301: //Switch/Valve 3 on
+				case 0x0400: //Switch/Valve 4 off
+				case 0x0401: //Switch/Valve 4 on
+				case 0x0500: //Turn Boiler Off
+				case 0x0501: //Turn Boiler On
+				case 0x0600: //Turn Hot Water Off
+				case 0x0601: //Turn Hot Water On
+					valve = zz / 0x100;
+					how = ((zz % 0x100) == 1);
+					turnValveOnOrOff(valve, how);
+					needsResponse = false;
+					break;
+				case 0xFA00: //Nextion Set baudrate back to 9600
+					SetTeensyBaud(9600);
+					needsResponse = false;
+				case 0xFDFD: // Indicates Nextion Serial Buffer Clear
+					serialBufferClear	= true;
+					needsResponse		= false;
+				default:
+					Serial.print("Some other NumericDataEnclosed data|: ");
+					Serial.print(nextionEvent.reply7.num[0], HEX); Serial.print(" ");
+					Serial.print(nextionEvent.reply7.num[1], HEX); Serial.println();
+					break;
+			}
+			break;
 
-	case autoEnteredSleepMode:
+		case autoEnteredSleepMode:
 		//		Serial.println("Auto Entered Sleep Mode");
-		break;
-	case autoAwakeFromSleepMode:
+			break;
+		case autoAwakeFromSleepMode:
 		//		Serial.println("Auto awake mode");
-		break;
-	case nextionReady:
+			break;
+		case nextionReady:
 		//		Serial.println("Nextion Ready");
-		break;
-	case powerOnMicroSDCardDet:
-		break;
-	case transparentDataFin:
+			break;
+		case powerOnMicroSDCardDet:
+			break;
+		case transparentDataFin:
 		//		Serial.println("Transparent data finished");
-		break;
-	case transparentDataReady:
+			break;
+		case transparentDataReady:
 		//		Serial.println("Transparent data ready");
-		break;
-	default:
-		Serial.print("How did I get here:"); Serial.println(nextionEvent.id, HEX);
-		_s->flush();
-		clearBuffer();
-		break;
+			break;
+		default:
+			Serial.print("How did I get here:"); Serial.println(nextionEvent.id, HEX);
+			_s->flush();
+			clearBuffer();
+			break;
 	}
 	return needsResponse;
 }
@@ -785,10 +787,9 @@ int32_t Nextion::getNumVarValue(const char* varName) {
 	elapsedMillis n;
 	bool		  ok = false;
 	rep7IntType	  val;
-	uint8_t       tempStore;
 
 #ifdef debug2
-	Serial.print("get "); Serial.print(varName); Serial.print("\xFF\xFF\xFF");
+	Serial.print("get "); Serial.print(varName); Serial.println("\xFF\xFF\xFF");
 #endif
 	nextionEvent.reply7int.number32bitInt = 0xFFFF; //=No Answer
 
@@ -804,13 +805,44 @@ int32_t Nextion::getNumVarValue(const char* varName) {
 	return val.number32bitInt;
 }
 
+#define debugt4z
+bool Nextion::getStringVarValue(const char* varName) {
+
+	elapsedMillis n;
+	bool		  ok = false;
+
+#ifdef debugt4
+	Serial.print("get "); Serial.print(varName); Serial.println("\xFF\xFF\xFF");
+#endif
+	_s->print("get "); _s->print(varName); _s->print("\xFF\xFF\xFF");
+	while ((n < 100) && (!ok)) {
+		ok = getReply();
+	}
+	if (ok) {
+		ok = GetNextionString();
+	}
+	return ok;
+}
+
+#define debugt3z
+void Nextion::sendCommand(const char* command) {
+#ifdef debugt3
+	Serial.print(command); Serial.println("\xFF\xFF\xFF");
+#endif
+	_s->print(command); _s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	if (ok) checkedComdCompleteOk = !checkComdComplete;
+#endif
+};
+
 #define debug1z
 bool Nextion::setNumVarValue(const char* varName, int32_t var) {
 
 	elapsedMillis n;
 	bool		  ok = false;
+
 #ifdef debug1
-	Serial.print(varName); Serial.print("="); Serial.print(var); Serial.print("\xFF\xFF\xFF");
+	Serial.print(varName); Serial.print("="); Serial.print(var); Serial.println("\xFF\xFF\xFF");
 #endif
 	_s->print(varName); _s->print("="); _s->print(var); _s->print("\xFF\xFF\xFF");
 	while ((n < 100) && (!ok)) {

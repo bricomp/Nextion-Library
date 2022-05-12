@@ -298,6 +298,7 @@ class Nextion {
 		uint32_t		recoveryBaudRate = baudRate;		// used for recovery when changing baud rate does not work
 		bool			nextionError	 = false;
 		bool			comdExecOk		 = false;			// only used for bkcmd = 1 or 3
+		bool			stringWaiting	 = false;
 		uint8_t			errorCode        = instructionSuccess;
 		bkcmdStateType  bkcmd			 = onFailure;
 
@@ -319,6 +320,17 @@ class Nextion {
 *																			Teensy baudRate.*
 *********************************************************************************************/
 		void begin(uint32_t br, setNextionBaudCallbackFunc func = nullptr);
+
+/********************************************************************************************
+*		sendCommand(const char* command); - Sends command to Nextion.						*
+*-------------------------------------------------------------------------------------------*
+*		Sends the command to Nextion. If bkcmd level has been set to 1 or 3 the code is		*
+*		setup to look for a response from the Nextion.										*
+*		if bkcmd set to 1 or 3, use the command lastComdCompletedOk(uint32_t timeout)		*
+*		below after a command or before the next command to determine that the (last)		*
+*		command completed ok.																*
+*********************************************************************************************/
+		void sendCommand(const char* command);
 
 /********************************************************************************************
 *		setBkCmdLevel(bkcmdStateType level) - Sets Nextion bkcmd value						*
@@ -405,17 +417,17 @@ class Nextion {
 
 /********************************************************************************************
 *		Check if char(s) returned from Nextion. If not do something else and come back		*
-*		later to check again. Wait for timeout. Default is 0..don't wait.																*
+*		later to check again or else Wait for timeout. Default is 0..don't wait.			*
 *-------------------------------------------------------------------------------------------*
 *		If there is a reply from Nextion then the Reply Char is received and the required   *
 *		number of following char/bytes dependent upon the value of the Id.					*
 *		The Id char is placed in nextionEvent.id.											*
-*		The remainig chars are placed in nextionEvent.reply8 ready to be decoded.			*
+*		The remaining chars are placed in nextionEvent.reply8 ready to be decoded.			*
 *		true is returned if there is an Id char and the required number of chars			*
 *		are returned. Otherwise false is returned.											*
 *		If the first char is received within timeout a further timeout of 1 second			*
-*		is allowed for remainig characters.													*
-*		This proc does NOT get any strings returned from Nextion,Use respondToReply()		*
+*		is allowed for remaining characters.												*
+*		This proc does NOT get any strings returned from Nextion. Use respondToReply()		*
 *		for that.																			*
 *********************************************************************************************/
 		bool getReply(uint32_t timeout = 0);
@@ -472,12 +484,26 @@ class Nextion {
 *		getNumVarValue(const char* varName) - Gets the value of Nextion Variable.			*
 *-------------------------------------------------------------------------------------------*
 *       Waits for up to 100ms for a reply. If no reply returns 0xFFFF.						*
-*       In reality this command shoud only be sent when the Nextion Serial buffer is		*
-*       otherwise any reply may be from previously stacked up Nextion commands and
-*		therefore be erroneous.																*
+*       In reality this command should only be sent when the Nextion Serial buffer is		*
+*       empty otherwise any reply may be from previously stacked up Nextion commands		*
+*		and therefore be erroneous.																*
 *		The varName MUST exist.                           									*
 *********************************************************************************************/
 		int32_t getNumVarValue(const char* varName);
+
+/********************************************************************************************
+*		getStringVarValue(const char* varName) - Gets the text from Nextion Variable.		*
+*-------------------------------------------------------------------------------------------*
+*       Waits for up to 100ms for a reply. If no reply returns 0xFFFF.						*
+*       In reality this command should only be sent when the Nextion Serial buffer is		*
+*       empty otherwise any reply may be from previously stacked up Nextion commands 		*
+*		and therefore be erroneous.															*
+*		The varName MUST exist.                           									*
+*		The result is placed in the string setup with the setTextBuffer function.			*
+*		If no screen has been setup it will simply be echoed to the screen (Serial).		*
+*		Returns true if string returned successfully. stringWaiting is set to true.			*
+*********************************************************************************************/
+		bool getStringVarValue(const char* varName);
 
 /********************************************************************************************
 *		setNumVarValue(const char* varName, int32_t var ) - Sets Nextion Variable to var.	*
