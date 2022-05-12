@@ -603,16 +603,27 @@ class Nextion {
 		void clearLeds();
 
 /********************************************************************************************
-*		printTextToNextion - Sends Text to Nextion to be placed in variable					*
+*		printTimeEmbeddedTextToNextion - Sends Text to Nextion to be placed in variable		*
 *		page0.msg.txt. If transmit is set to true the text is terminated with a "			*
-*		character and m0 is clicked to cause the screen on page1 to be updated using		*
+*		character and m0,1 is clicked to cause the screen on page1 to be updated using		*
 *		the finishNextionTextTransmittion() command (see below).							*
 *		The procedure sends page0.msg.txt=" to the Nextion followed by the text.			*
 *-------------------------------------------------------------------------------------------*
-*       Usage:   printTextToNextion( "This is a load of text for page1", true );			*
+*       Usage: printTimeEmbeddedTextToNextion( "This is a load of text for page1", true );	*
 *-------------------------------------------------------------------------------------------*
 *		A string representing the Nextion time in the format " HH:MM:SS " is inserted		*
 *       AFTER the first character.         This is carried out by the Nextion display.		*
+*********************************************************************************************/
+		void printTimeEmbeddedTextToNextion(const char* p, bool transmit);
+
+/********************************************************************************************
+*		printTextToNextion - Sends Text to Nextion to be placed in variable					*
+*		page1.va0.txt. If transmit is set to true the text is terminated with a "			*
+*		character and m0,0 is clicked to cause the screen on page1 to be updated using		*
+*		the finishNextionTextTransmittion() command (see below).							*
+*		The procedure sends page1.va0.txt=" to the Nextion followed by the text.			*
+*-------------------------------------------------------------------------------------------*
+*       Usage:   printTextToNextion( "This is a load of text for page1", true );			*
 *********************************************************************************************/
 		void printTextToNextion(const char* p, bool transmit);
 
@@ -638,8 +649,10 @@ class Nextion {
 
 /********************************************************************************************
 *		finishNextionTextTransmittion() - Terminate the text transmitted to Nextion with a  *
-*		" character and terminate the command correctly. Also issue the click m0 command	*
-*		to cause the screen on page1 to be updated.											*
+*		" character and terminate the command correctly. Also issue the relevant			*
+*		click m0 command dependent upon which printText command was used to cause the		*
+*		screen on page1 to be updated.														*
+*		( Uses "click m0,1" or "click m0,0" as appropriate )								*
 *-------------------------------------------------------------------------------------------*
 *       Usage:   finishNextionTextTransmittion()											*
 *********************************************************************************************/
@@ -707,6 +720,7 @@ class Nextion {
 	private:
 
 		bool GetNextionString();
+		void pntTextToNextion(bool embedTimeInTxt, const char* p, bool transmit);
 
 		// variable for the serial stream
 		Stream* _s;
@@ -714,6 +728,7 @@ class Nextion {
 		bool	 serialBufferClear		= true;
 		bool	 checkedComdCompleteOk	= true;		// Only used when bkcmd = 1 or 3
 		bool	 checkComdComplete		= false;	// Only used when bkcmd = 1 or 3
+		bool	 mbedTimeInText			= true;
 		uint8_t  txtBufCharPtr			= 0;
 		uint8_t  txtBufSize				= 0;
 		char     *txtBufPtr				= nullptr;

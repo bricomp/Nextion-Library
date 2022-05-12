@@ -162,7 +162,13 @@ void Nextion::clearLeds() {
 void Nextion::finishNextionTextTransmittion() {
 #ifdef debugt
 	Serial.print("\"\xFF\xFF\xFF");
-	Serial.print("click m0,1"); Serial.print("\xFF\xFF\xFF");
+	if (mbedTimeInText) {
+		Serial.print("click m0,1");
+	}else
+	{
+		Serial.print("click m0,0");
+	}
+	Serial.print("\xFF\xFF\xFF");
 	Serial.println(" -- finishNextionTextTransmittion");
 #endif
 
@@ -173,24 +179,52 @@ void Nextion::finishNextionTextTransmittion() {
 		Serial.println("finishNextionTextTransmittion: Nextion command did NOT complete ok");
 	};
 #endif
-	_s->print("click m0,1"); _s->print("\xFF\xFF\xFF");
+	if (mbedTimeInText) {
+		_s->print("click m0,1"); 
+	}
+	else
+	{
+		_s->print("click m0,0");
+	}
+	_s->print("\xFF\xFF\xFF");
 #ifdef bkcmd1or3allowed
 	checkedComdCompleteOk = !checkComdComplete;
 #endif
 }
 
-void Nextion::printTextToNextion(const char* p, bool transmit) {
+void Nextion::pntTextToNextion(bool embedTimeInTxt, const char* p, bool transmit) {
 #ifdef debugt
 	Serial.print("printTextToNextion: ");
-	Serial.print("page0.msg.txt=\"");
+	if (embedTimeInTxt) {
+		Serial.print("page0.msg.txt=\"");
+	}
+	else
+	{
+		Serial.print("page1.va0.txt=\"");     // was:- _s->print("page1.va0.txt=\"");
+	}
 	Serial.print(p);
 #endif
-	_s->print("page0.msg.txt=\"");     // was:- _s->print("page1.va0.txt=\"");
+	mbedTimeInText = embedTimeInTxt;
+	if (embedTimeInTxt) {
+		_s->print("page0.msg.txt=\"");     // was:- _s->print("page1.va0.txt=\"");
+	}
+	else
+	{
+		_s->print("page1.va0.txt=\"");     // was:- _s->print("page1.va0.txt=\"");
+	}
 	_s->print(p);
 	if (transmit) {
 		finishNextionTextTransmittion();
 		_s->flush();
 	}
+}
+
+void Nextion::printTextToNextion(const char* p, bool transmit) {
+	pntTextToNextion(false, p, transmit);
+}
+
+void Nextion::printTimeEmbeddedTextToNextion(const char* p, bool transmit) {
+	pntTextToNextion(true, p, transmit);
 }
 
 void Nextion::printMoreTextToNextion(const char* p, bool transmit) {
@@ -219,7 +253,7 @@ void Nextion::printCommandOrErrorTextMessage(const char* commandOrError, const c
 #ifdef debugt
 	Serial.print("printCommandOrErrorTextMessage: ");
 #endif
-	printTextToNextion(commandOrError, false);
+	pntTextToNextion(true,commandOrError, false);
 #ifdef debugt
 	Serial.print(textMessage);
 #endif
