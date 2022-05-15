@@ -323,6 +323,13 @@ class Nextion {
 
 /********************************************************************************************
 *		sendCommand(const char* command); - Sends command to Nextion.						*
+*		sendCommand(const char* command, uint32_t num); - Sends command & num to Nextion.	*
+*		sendCommand(const char* command, uint32_t txt, encloseText); - Sends command & txt	*
+*-------------------------------------------------------------------------------------------*
+*		In the 3rtd form above, if encloseTxt is true then txt is enclosed between			*
+*		quotation marks ".																	*
+*		So sendCommand( "page0.CommentBox.txt=","Hello There",true); results in				*
+*       page0.CommentBox.txt="Hello There"\xFF\xFF\xFF being sent to the Nextion.			*
 *-------------------------------------------------------------------------------------------*
 *		Sends the command to Nextion. If bkcmd level has been set to 1 or 3 the code is		*
 *		setup to look for a response from the Nextion.										*
@@ -331,6 +338,8 @@ class Nextion {
 *		command completed ok.																*
 *********************************************************************************************/
 		void sendCommand(const char* command);
+		void sendCommand(const char* command, uint32_t num);
+		void sendCommand(const char* command, const char* txt, bool encloseText);
 
 /********************************************************************************************
 *		setBkCmdLevel(bkcmdStateType level) - Sets Nextion bkcmd value						*

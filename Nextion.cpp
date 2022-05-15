@@ -656,11 +656,13 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 				case 0xFA00: //Nextion Set baudrate back to 9600
 					SetTeensyBaud(9600);
 					needsResponse = false;
+					break;
 				case 0xFDFD: // Indicates Nextion Serial Buffer Clear
 					serialBufferClear	= true;
 					needsResponse		= false;
+					break;
 				default:
-					Serial.print("Some other NumericDataEnclosed data|: ");
+					Serial.print("Some other NumericDataEnclosed data: ");
 					Serial.print(nextionEvent.reply7.num[0], HEX); Serial.print(" ");
 					Serial.print(nextionEvent.reply7.num[1], HEX); Serial.println();
 					break;
@@ -830,6 +832,30 @@ void Nextion::sendCommand(const char* command) {
 	Serial.print(command); Serial.println("\xFF\xFF\xFF");
 #endif
 	_s->print(command); _s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	if (ok) checkedComdCompleteOk = !checkComdComplete;
+#endif
+};
+
+void Nextion::sendCommand(const char* command, uint32_t num) {
+#ifdef debugt3
+	Serial.print(command); Serial.print(num); Serial.println("\xFF\xFF\xFF");
+#endif
+	_s->print(command); _s->print(num); _s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	if (ok) checkedComdCompleteOk = !checkComdComplete;
+#endif
+};
+
+void Nextion::Nextion::sendCommand(const char* command, const char* txt, bool encloseText) {
+#ifdef debugt3
+	Serial.print(command); Serial.print(txt); Serial.println("\xFF\xFF\xFF");
+#endif
+	_s->print(command); 
+	if (encloseText) _s->print("\""); 
+	_s->print(txt);
+	if (encloseText) _s->print("\"");
+	_s->print("\xFF\xFF\xFF");
 #ifdef bkcmd1or3allowed
 	if (ok) checkedComdCompleteOk = !checkComdComplete;
 #endif
