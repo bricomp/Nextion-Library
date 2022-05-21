@@ -238,7 +238,7 @@ void Nextion::printMoreTextToNextion(const char* p, bool transmit) {
 	}
 }
 
-void Nextion::printNumericText(uint32_t num, bool transmit) {
+void Nextion::printNumericText(int32_t num, bool transmit) {
 #ifdef debugt
 	Serial.print(num);
 #endif
@@ -517,17 +517,21 @@ uint32_t Nextion::recoverNextionComms() {
 		return 0;
 	}
 };
-
+#define debugGNSz
 bool Nextion::GetNextionString() {
 	elapsedMillis t;
 	bool		  gotFF = false;
 	uint8_t		  fFCount = 0;
 	char		  c;
 
+	while (!_s->available() && t < 10) {}
 	if (_s->available()) {
 		stringWaiting = false;
 		txtBufCharPtr = 0;
 		while (_s->available() && (fFCount < 3)) {
+#ifdef debugGNS
+			Serial.print(txtBufCharPtr); Serial.print(" - ");
+#endif
 			c = _s->read();
 			gotFF = (c == 0xFF);
 			if (gotFF) {
@@ -546,8 +550,8 @@ bool Nextion::GetNextionString() {
 				txtBufCharPtr++;
 			}
 			t = 0;
-			while (!_s->available() && t < 3) {}
-			//			delay(3);
+			while (!_s->available() && t < 10) {}  // 10 for potential low baud rate
+
 		}
 		if (txtBufCharPtr >= txtBufSize) {
 			Serial.println();
@@ -618,8 +622,13 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 		//		Serial.println("Current Page Number");
 			break;
 		case touchCoordinateAwake:
-		//		Serial.println("Touch Coordinate Awake");
-			break;
+/*			Serial.println("Touch Coordinate Awake");
+			Serial.print(nextionEvent.reply8.xPos);
+			Serial.print(" - ");
+			Serial.print(nextionEvent.reply8.yPos);
+			Serial.print(" - Press(1)/Release(0) : ");
+			Serial.println(nextionEvent.reply8.pressed);
+*/			break;
 		case touchCoordinateSleep:
 		//		Serial.println("Touch Coordinate Sleep");
 			break;
@@ -655,7 +664,9 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 					break;
 				case 0xFA00: //Nextion Set baudrate back to 9600
 					SetTeensyBaud(9600);
-					needsResponse = false;
+					if (nextionAutoBaud) {
+						needsResponse = false;
+					}
 					break;
 				case 0xFDFD: // Indicates Nextion Serial Buffer Clear
 					serialBufferClear	= true;
@@ -701,6 +712,8 @@ void Nextion::printAnyReturnCharacters(uint32_t nextionTime, uint8_t id) {
 	uint8_t		  fFCount = 0;
 	char		  c;
 
+	while (!_s->available() && t < 10) {}
+
 	if (_s->available()) {
 		Serial.println();
 		Serial.print("NTime: ");
@@ -721,8 +734,8 @@ void Nextion::printAnyReturnCharacters(uint32_t nextionTime, uint8_t id) {
 				Serial.print(" -- ");
 			}
 			t = 0;
-			while (!_s->available() && t < 3) {}
-//			delay(3);
+			while (!_s->available() && t < 10) {}
+
 		}
 		Serial.println();
 	}
@@ -821,6 +834,9 @@ bool Nextion::getStringVarValue(const char* varName) {
 		ok = getReply();
 	}
 	if (ok) {
+#ifdef debugt4
+		Serial.print(nextionEvent.id, HEX); Serial.println("  Getting Nextion Return String");
+#endif
 		ok = GetNextionString();
 	}
 	return ok;

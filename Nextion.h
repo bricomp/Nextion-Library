@@ -135,7 +135,7 @@ struct rep7IntType {
 	union {
 		uint8_t		ans[4];
 		uint16_t	num[2];
-		uint32_t	number32bitInt;
+		int32_t		number32bitInt;
 	};
 	uint32_t	nextTerm;
 };
@@ -306,7 +306,7 @@ class Nextion {
 
 //      s is the serial stream to use e.g. Serial1
 		Nextion(Stream* s);
-
+/**/
 /********************************************************************************************
 *		begin(uint32_t br, setNextionBaudCallbackFunc func = nullptr) - passes the Nextion  *
 *		baud rate to the library. This is put into the variable baudRate. No changes to the *
@@ -320,13 +320,13 @@ class Nextion {
 *																			Teensy baudRate.*
 *********************************************************************************************/
 		void begin(uint32_t br, setNextionBaudCallbackFunc func = nullptr);
-
+/**/
 /********************************************************************************************
 *		sendCommand(const char* command); - Sends command to Nextion.						*
 *		sendCommand(const char* command, uint32_t num); - Sends command & num to Nextion.	*
 *		sendCommand(const char* command, uint32_t txt, encloseText); - Sends command & txt	*
 *-------------------------------------------------------------------------------------------*
-*		In the 3rtd form above, if encloseTxt is true then txt is enclosed between			*
+*		In the 3rd form above, if encloseTxt is true then txt is enclosed between			*
 *		quotation marks ".																	*
 *		So sendCommand( "page0.CommentBox.txt=","Hello There",true); results in				*
 *       page0.CommentBox.txt="Hello There"\xFF\xFF\xFF being sent to the Nextion.			*
@@ -340,7 +340,7 @@ class Nextion {
 		void sendCommand(const char* command);
 		void sendCommand(const char* command, uint32_t num);
 		void sendCommand(const char* command, const char* txt, bool encloseText);
-
+/**/
 /********************************************************************************************
 *		setBkCmdLevel(bkcmdStateType level) - Sets Nextion bkcmd value						*
 *-------------------------------------------------------------------------------------------*
@@ -352,7 +352,7 @@ class Nextion {
 *		Nextiopn.cpp.																		*
 *********************************************************************************************/
 		void setBkCmdLevel(bkcmdStateType level);
-
+/**/
 /********************************************************************************************
 *		lastComdCompletedOk(uint32_t timeout) - ret true/false if last comd completed ok	*
 *-------------------------------------------------------------------------------------------*
@@ -364,26 +364,26 @@ class Nextion {
 *		This is not an indication that the command completed ok as handshaking is off.		*
 *********************************************************************************************/
 		bool lastComdCompletedOk(uint32_t timeout);
-
+/**/
 /********************************************************************************************
 *		Set the Text Area to be used for the Return of Text data from Nextion               *
 *       If text is sent from the Nextion (following the 0x70 identifier) it will be			*
-*		sent to SerialUsb if this function has not been used to specifay a variable			*
-*       to hold thye text data. The parameter must be the size of the textMessage			*
+*		sent to SerialUsb if this function has not been used to specify a variable			*
+*       to hold the text data. The parameter must be the size of the textMessage			*
 *	    variable. If more text is returned than there is space for in textMessage			*
 *		it will be sent to the SerialUsb.													*
 *-------------------------------------------------------------------------------------------*
-*       Usage:   setTextBuffer( textMessage, sizeof( textMessage ));						*
+*       Usage:   setTextBuffer( textBuffer, sizeof( textBuffer ));							*
 *********************************************************************************************/
-		void setTextBuffer(const char* textMessage, uint8_t textMessageSize);
-
+		void setTextBuffer(const char* textBuffer, uint8_t textBufferSize);
+/**/
 /********************************************************************************************
 *		clearBuffer() - Clears the Teensy (Nextion) serial input.							*
 *		Use where things have perhaps gone wrong and you need to clear out erroneous    	*
 *		replies.																			*
 *********************************************************************************************/
 		void clearBuffer();
-
+/**/
 /********************************************************************************************
 *		commsOk() - Checks that valid communications exist with the Nextion Display.        *
 *		It sends the command "sendme\xFF\xFF\xFF" and looks for a reply. It does not look   *
@@ -392,7 +392,7 @@ class Nextion {
 *		too long or some other error reply. Instead it looks for any valid reply.			*
 *********************************************************************************************/
 		bool commsOk();
-
+/**/
 /********************************************************************************************
 *		reset(baudRate) - Resets the Nextion Display and sets the baud rate to "baudRate"	*
 *-------------------------------------------------------------------------------------------*
@@ -411,7 +411,7 @@ class Nextion {
 *		   reset(115200) - Will do a reset and set the baudRate to 115200.					*
 *********************************************************************************************/
 		bool reset(uint32_t br = 0);
-
+/**/
 /********************************************************************************************
 *		recoverNextionComms() - attempts to recover Nextion Comms once they have been lost  *
 *-------------------------------------------------------------------------------------------*
@@ -423,7 +423,7 @@ class Nextion {
 *		If NO valid baud rate can be found then returns 0.									*
 *********************************************************************************************/
 		uint32_t recoverNextionComms();
-
+/**/
 /********************************************************************************************
 *		Check if char(s) returned from Nextion. If not do something else and come back		*
 *		later to check again or else Wait for timeout. Default is 0..don't wait.			*
@@ -433,14 +433,14 @@ class Nextion {
 *		The Id char is placed in nextionEvent.id.											*
 *		The remaining chars are placed in nextionEvent.reply8 ready to be decoded.			*
 *		true is returned if there is an Id char and the required number of chars			*
-*		are returned. Otherwise false is returned.											*
+*		are returned. Otherwise, false is returned.											*
 *		If the first char is received within timeout a further timeout of 1 second			*
 *		is allowed for remaining characters.												*
 *		This proc does NOT get any strings returned from Nextion. Use respondToReply()		*
 *		for that.																			*
 *********************************************************************************************/
 		bool getReply(uint32_t timeout = 0);
-
+/**/
 /********************************************************************************************
 *		respondToReply() - returns true if something needs responding to.					*
 *-------------------------------------------------------------------------------------------*
@@ -454,7 +454,7 @@ class Nextion {
 *		If you have handled the Nextion response fully then set needsResponse to false.     *
 *********************************************************************************************/
 		bool respondToReply();
-
+/**/
 /********************************************************************************************
 *		printAnyReturnCharacters(uint32_t nextionTime, uint8_t id).							*
 *		This function is intended to be used in debugging your code. It prints out to the   *
@@ -467,7 +467,7 @@ class Nextion {
 *		ALL data is output in HEX.															*
 *********************************************************************************************/
 		void printAnyReturnCharacters(uint32_t nextionTime, uint8_t id);
-
+/**/
 /********************************************************************************************
 *		setNextionBaudRate(uint32_t br) - Sets the baud rate on Nextion and Teensy.			*
 *-------------------------------------------------------------------------------------------*
@@ -485,42 +485,42 @@ class Nextion {
 *		setBackLight(uint32_t backLight) - Sets the display BackLight(0..100).				*
 *-------------------------------------------------------------------------------------------*
 *		Any value greater than 100 will default to 100.    									*
-*       0 is off 100 is MAX btightness.														*
+*       0 is off 100 is MAX brightness.														*
 *********************************************************************************************/
 	void setBackLight(uint32_t backLight);
-
+/**/
 /********************************************************************************************
 *		getNumVarValue(const char* varName) - Gets the value of Nextion Variable.			*
 *-------------------------------------------------------------------------------------------*
 *       Waits for up to 100ms for a reply. If no reply returns 0xFFFF.						*
 *       In reality this command should only be sent when the Nextion Serial buffer is		*
-*       empty otherwise any reply may be from previously stacked up Nextion commands		*
-*		and therefore be erroneous.																*
+*       empty otherwise, any reply may be from previously stacked up Nextion commands		*
+*		and therefore be erroneous.															*
 *		The varName MUST exist.                           									*
 *********************************************************************************************/
 		int32_t getNumVarValue(const char* varName);
-
+/**/
 /********************************************************************************************
 *		getStringVarValue(const char* varName) - Gets the text from Nextion Variable.		*
 *-------------------------------------------------------------------------------------------*
-*       Waits for up to 100ms for a reply. If no reply returns 0xFFFF.						*
+*       Waits for up to 100ms for a reply. If no reply returns false.						*
 *       In reality this command should only be sent when the Nextion Serial buffer is		*
-*       empty otherwise any reply may be from previously stacked up Nextion commands 		*
+*       empty otherwise, any reply may be from previously stacked up Nextion commands 		*
 *		and therefore be erroneous.															*
 *		The varName MUST exist.                           									*
 *		The result is placed in the string setup with the setTextBuffer function.			*
 *		If no screen has been setup it will simply be echoed to the screen (Serial).		*
-*		Returns true if string returned successfully. stringWaiting is set to true.			*
+*		Returns true if string returned successfully. stringWaiting is also set to true.	*
 *********************************************************************************************/
 		bool getStringVarValue(const char* varName);
-
+/**/
 /********************************************************************************************
 *		setNumVarValue(const char* varName, int32_t var ) - Sets Nextion Variable to var.	*
 *-------------------------------------------------------------------------------------------*
 *		The varName MUST exist.                           									*
 *********************************************************************************************/
 		bool setNumVarValue(const char* varName, int32_t var);
-
+/**/
 /********************************************************************************************
 *		askSerialBufferClear() - Ask Nextion if Serial Buffer Clear (Empty)					*
 *-------------------------------------------------------------------------------------------*
@@ -532,7 +532,7 @@ class Nextion {
 *		Requires this line "int clrBufr=65021" in Nextion Program.s							*
 *********************************************************************************************/
 		void askSerialBufferClear();
-
+/**/
 /********************************************************************************************
 *		isSerialBufferClear() - Query answer from askSerialBufferClear() above				*
 *-------------------------------------------------------------------------------------------*
@@ -542,7 +542,7 @@ class Nextion {
 *		0xFDFD they will NOT return true.													*
 *********************************************************************************************/
 		bool isSerialBufferClear();
-
+/**/
 /********************************************************************************************
 *		bool askSerialBufferClear(uint32_t timeout) - As above but waits for a reply		*
 *-------------------------------------------------------------------------------------------*
@@ -574,11 +574,11 @@ class Nextion {
 *		Thus some timing control is offloaded to the Nextion.								*
 *********************************************************************************************/
 		void setHotWaterOnForMins(uint8_t howLong);
-
+/**/
 /********************************************************************************************
 *		setTime(uint32_t time) - Sets the time on the Nextion.								*
 *-------------------------------------------------------------------------------------------*
-*		The time is sent as HEX HHMMSS in the variable "page0.SetTime=time0xFF0xFF0xFF"		*
+*		The time is sent as HEX HHMMSS in the variable "page0.SetTime=HHMMSS0xFF0xFF0xFF"	*
 *       When the Nextion sees that SetTime is not zero it sets the Nextion time.    		*
 *		The SetTime variable is then set to 0.												*		
 *-------------------------------------------------------------------------------------------*
@@ -587,6 +587,15 @@ class Nextion {
 *				display.setTime(time)														*
 *********************************************************************************************/
 		void setTime(uint32_t time);
+/**/
+/********************************************************************************************
+*		setDaylightSavingOn( on) - Turn Nextion daylight saving variable on or off			*
+*-------------------------------------------------------------------------------------------*
+*		Usage:									        									*
+*		   setDaylightSavingOn( true )  - Turn on              								*
+*		   setDaylightSavingOn( false ) - Turn off             								*
+*********************************************************************************************/
+		bool setDaylightSavingOn(bool on);
 
 /********************************************************************************************
 *		turnDebugOn(bool on) - Turn Nextion debug variable on or off						*
@@ -611,7 +620,7 @@ class Nextion {
 *		call back function to turn a valve on or off										*
 *********************************************************************************************/
 		void setValveCallBack(nextionTurnValveOnOffCallbackFunc func);
-
+/**/
 /********************************************************************************************
 *		setLedState - Sets the state of the leds in top, middle or bottom Row.				*
 *		which = led (0..7) and state is on (1), off (0) or flashing (2).					*
@@ -622,7 +631,7 @@ class Nextion {
 *       Usage:   setLedState( mid, 4, flashing );											*
 *********************************************************************************************/
 		void setLedState(topMidBottmType whichLed, uint8_t which/*0..7*/, onOffFlashingType state);
-
+/**/
 /********************************************************************************************
 *		setNextionLeds actually sends command to Nextion to change the state of				*
 *		which leds ( top, middle or bottom row ) set with setLedState function.				*
@@ -630,13 +639,13 @@ class Nextion {
 *       Usage:   setNextionLeds( top );													*
 *********************************************************************************************/
 		void setNextionLeds(topMidBottmType which);
-
+/**/
 /********************************************************************************************
 *		clearLeds sets the leds state variable to all (top, middle and bottom) off.			*
-*       Uses setNex+tionLeds to send command to update all rows on Nextion.					*
+*       Uses setNextionLeds to send command to update all rows on Nextion.					*
 *********************************************************************************************/
 		void clearLeds();
-
+/**/
 /********************************************************************************************
 *		printTimeEmbeddedTextToNextion - Sends Text to Nextion to be placed in variable		*
 *		page0.msg.txt. If transmit is set to true the text is terminated with a "			*
@@ -650,7 +659,7 @@ class Nextion {
 *       AFTER the first character.         This is carried out by the Nextion display.		*
 *********************************************************************************************/
 		void printTimeEmbeddedTextToNextion(const char* p, bool transmit);
-
+/**/
 /********************************************************************************************
 *		printTextToNextion - Sends Text to Nextion to be placed in variable					*
 *		page1.va0.txt. If transmit is set to true the text is terminated with a "			*
@@ -661,7 +670,7 @@ class Nextion {
 *       Usage:   printTextToNextion( "This is a load of text for page1", true );			*
 *********************************************************************************************/
 		void printTextToNextion(const char* p, bool transmit);
-
+/**/
 /********************************************************************************************
 *		printMoreTextToNextion - It is the same as the printTextToNextion function except	*
 *		that the page0.msg.txt=" is NOT sent.												*
@@ -670,7 +679,7 @@ class Nextion {
 *		NOTE: DO NOT use this without first using printTextToNextion( "text", false );		*
 *********************************************************************************************/
 		void printMoreTextToNextion(const char* p, bool transmit);
-
+/**/
 /********************************************************************************************
 *		printNumericText - Sends number to Nextion. This command MUST have been preceeded   *
 *		by the printTextToNextion command shown above. If transmit is set to true the text	*
@@ -680,75 +689,64 @@ class Nextion {
 *       Usage:   printNumericText( n, true );	// where n is a uint32_t					*
 *		NOTE: DO NOT use this without first using printTextToNextion( "text", false );		*
 *********************************************************************************************/
-		void printNumericText(uint32_t num, bool transmit);
-
+		void printNumericText(int32_t num, bool transmit);
+/**/
 /********************************************************************************************
 *		finishNextionTextTransmittion() - Terminate the text transmitted to Nextion with a  *
-*		" character and terminate the command correctly. Also issue the relevant			*
-*		click m0 command dependent upon which printText command was used to cause the		*
+*		" character and terminate the command correctly. Also issues the relevant			*
+*		click m0 command dependant upon which printText command was used to cause the		*
 *		screen on page1 to be updated.														*
 *		( Uses "click m0,1" or "click m0,0" as appropriate )								*
 *-------------------------------------------------------------------------------------------*
 *       Usage:   finishNextionTextTransmittion()											*
 *********************************************************************************************/
 		void finishNextionTextTransmittion();
-
+/**/
 /********************************************************************************************
 *		I like to keep a monitor of what has happened in the system. This display is on     *
 *		page1 of the Nextion display. I use the first character position to indicate the    *
 *		type of message/source of message. e.g. C for command, E for error message. After   *
-*		this character I inser the Time in " HH:MM:SS " format. This is done by the			*
+*		this character I insert the Time in " HH:MM:SS " format. This is done by the		*
 *		Nextion Display.																	*
 *-------------------------------------------------------------------------------------------*
 *		printCommandOrErrorTextMessage - sends the commandOrError charater followed by the	*
-*		textMessage to the Nextion using the printTextToNextion command above.				*
+*		textMessage to the Nextion using the printTimeEmbeddedTextToNextion command above.	*
 *		If transmit is set to true the text	is terminated with a "character and m0 is		*
 *		clicked to cause the screen on page1 to	be updated using the						*
 *		finishNextionTextTransmittion() command (see above).								*
 *********************************************************************************************/
 		void printCommandOrErrorTextMessage(const char* commandOrError, const char* textMessage, bool transmit);
-
+/**/
 /********************************************************************************************
 *		preserveTopTextLine() - Top text line writing inhibited.							*
 *-------------------------------------------------------------------------------------------*
 *		All general text commands do not use top line if this command actuated.           	*
 *********************************************************************************************/
 		void preserveTopTextLine();
-
+/**/
 /********************************************************************************************
 *		writeToTopTextLine(const char* textMessage)											*
 *********************************************************************************************/
 		void writeToTopTextLine(const char* textMessage);
-
+/**/
 /********************************************************************************************
 *		releaseTopTextLine() - Allows writing to the Top Text Line							*
 *-------------------------------------------------------------------------------------------*
 *		All general text commands can use top line again (Default Setting).			    	*
 *********************************************************************************************/
 		void releaseTopTextLine();
-
+/**/
 /********************************************************************************************
 *		clearTextScreen() - Clears the Nextion Text Screen (page1)							*
-*-------------------------------------------------------------------------------------------*
+*-------------------------------- ----------------------------------------------------------*
 *		If the Top Line is preserved that is not cleared, use clearTopTextLine instead.    	*
 *********************************************************************************************/
 		void clearTextScreen();
-
+/**/
 /********************************************************************************************
 *		clearTopTextLine() - Clears the Nextion Text Screen Top Text Line					*
-*-------------------------------------------------------------------------------------------*
-*		If the Top Line is preserved that is not cleared, use clearTopTextLine instead.    	*
 *********************************************************************************************/
 		void clearTopTextLine();
-
-/********************************************************************************************
-*		setDaylightSavingOn( on) - Turn Nextion daylight saving variable on or off			*
-*-------------------------------------------------------------------------------------------*
-*		Usage:									        									*
-*		   setDaylightSavingOn( true )  - Turn on              								*
-*		   setDaylightSavingOn( false ) - Turn off             								*
-*********************************************************************************************/
-		bool setDaylightSavingOn( bool on);
 
 		elapsedMillis nextionTime;  // Just used for internal counting purposes.
 
