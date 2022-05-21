@@ -12,7 +12,7 @@ See Resources for Printable Word/pdf documents.
 
   Below is the page0 screen of my Nextion Project which led to the development of this Library.
 
-![page0Screen](C:\Arduino Programs\LIBRARIES\Nextion\Resources-Graphic\page0Screen.jpg)
+![page0Screen](.\Resources-Graphic\page0Screen.jpg)
 
   The function that you will mostly alter is the "respondToReply()" function.
   I developed this library to control the valves in my Home Heating system, so there are functions
