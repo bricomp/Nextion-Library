@@ -2,7 +2,9 @@
 
 #### PLEASE ALSO READ THE Nextion.h DOCUMENT IN Resources
 
-To view this document WITH graphic immages see README.pdf
+In the Examples folder is the HMI file NextionExample.HMI and the ION file NextionExample.ino which were developed to demonstrate this library.
+
+To view this document WITH graphic images see README.pdf. There is also a README.docx but that does NOT maintain the formatting.
 
 Alternatively download the complete library resource and README.md will suddenly and miraculously display the graphic images.
 
@@ -11,33 +13,30 @@ This ReadMe is a little wordy but tries to explain all the nuances of using Next
 Use this code as a framework to produce your own Nextion Library.
 See Resources for Printable Word/pdf documents.
 
-  Code by Robert E Bridges.
-  This library is intended to be used to create your own Nextion Library. Most of it is done for you. 
+Code by Robert E Bridges.
+This library is intended to be used to create your own Nextion Library. Most of it is done for you. 
 
-  Below is the page0 screen of my Nextion Project which led to the development of this Library.
+Below is the page0 screen of my Nextion Project which led to the development of this Library.
 
 ![page0Screen](.\Resources-Graphic\page0Screen.jpg)
 
-  The function that you will mostly alter is the "respondToReply()" function.
-  I developed this library to control the valves in my Home Heating system, so there are functions
-  that pertain to the opening/closing of valves. This can be used as an example as to how to use/develop
-  the Library.
+The function that you will mostly alter is the "respondToReply()" function.
+I developed this library to control the valves in my Home Heating system, so there are functions
+that pertain to the opening/closing of valves. This can be used as an example as to how to use/develop the Library.
 
-  I mostly communicate with the nextion through the passing of data into/from numeric variables.
+I mostly communicate with the nextion through the passing of data into/from numeric variables.
 
-  I have a TimerEvent which runs at 600mS intervals, slow I know but fast enough for my current needs.
+I have a TimerEvent which runs at 600mS intervals, slow I know but fast enough for my current needs.
 
-  When, for example, this timer notices that the numeric variable "SetTime" is not zero it takes the value
-  from this variable and sets the Nextion time. 
+When, for example, this timer notices that the numeric variable "SetTime" is not zero it takes the valueb from this variable and sets the Nextion time. 
 
-  The format of the data in this variable is (in HEX) "HHMMSS".
-  After having set the time the variable is set back to 0 again.
+The format of the data in this variable is (in HEX) "HHMMSS".
+After having set the time the variable is set back to 0 again.
 
-  Other variables are interrogated and responded to in a similar way by the code for this Timer Event.
-  An example is to give an impression of a flashing led, turning on or off a radio button, with a different
-  colour for on and off.
+Other variables are interrogated and responded to in a similar way by the code for this Timer Event.
+An example is to give an impression of a flashing led, turning on or off a radio button, with a different colour for on and off.
 
-  Below is the Nextion code snippet to set the RTC time.
+Below is the Nextion code snippet to set the RTC time.
 
 				//=================================
 				//Set RTC time if SetTime > 0  NOTE: Variables declared in Nextion Programs.s
@@ -376,7 +375,7 @@ Using the information above you should be able to investigate any of the remaini
 
 ###### bool reset(uint32_t br = 0);
 
-​	Resets the Nextion Display and sets the baud rate to "baudRate"
+Resets the Nextion Display and sets the baud rate to "baudRate"
 
 
 Sends a reset command ("rest") to the Nextion. 
@@ -422,7 +421,7 @@ min 0, max 3, default 2
 
 Result is only sent after serial command/task has been completed, as such this provides an invaluable status for debugging and branching. See table on Page 6 of Nextion.h.A4 Landscape.docx or .pdf.
 
-  Nextion Return Data is not subject to bkcmd, i.e. if a command normally returns data, the return of the data is the "handshake" function.
+Nextion Return Data is not subject to bkcmd, i.e. if a command normally returns data, the return of the data is the "handshake" function.
 
 If a command does not normally return a value, such as this command, and bkcmd is set to 1 or 3 then the Nextion returns `0x01 0xFF 0xFF 0xFF`
 
@@ -453,7 +452,7 @@ The process of setting bkcmd to 1 or 3 is as below:
 
 Gets the value of Nextion Variable varName.
 
-Waits for up to 100ms for a reply. If no reply returns 0xFFFF.
+Waits for up to 100ms for a reply. If no reply returns -1.
 
 In reality this command should only be sent when the Nextion Serial buffer is empty otherwise, any reply may be from previously stacked up Nextion commands and therefore be erroneous.
 
@@ -1220,3 +1219,142 @@ for(r=r16.id;r<=r23.id;r++)
 ```
 
 The state of the leds is controlled by setting their values in the three variables TopLed, MidLed and BotmLed each holding the state of 8 leds.
+
+
+
+### More General Routines
+
+###### void setBackLight(uint32_t backLight);
+
+Sets the display BackLight(0..100). 
+
+Any value greater than 100 will default to 100.
+
+0 is off, 100 is MAX brightness.
+
+if backLight set to 20, sends "dim=20\xFF\xFF\xFF" to the Nextion. 
+
+Also sets up software for bkcmd=1 or 3 situations.
+
+
+
+###### bool turnScreenDimOn(bool on);
+
+I have a variable, dimAllowed, which turns on or off  whether the screen will dim after a pre-determined period of time. The time duration is controlled by the Nextion program(s), but can be set by the `setScreenDimTime` function below..
+
+Turn Nextion dimAllowed variable on or off.
+
+Usage:
+
+​	`turnScreenDimOn( true )`  - Turn Dim on
+
+​	`turnScreenDimOn( false )` - Turn Dim off
+
+Also sets up software for bkcmd=1 or 3 situations.
+
+
+
+###### bool setScreenDimTime(uint32_t dimTime);
+
+This function sets the time after which the screen will be dimmed if turned on by the `turnScreenDimOn` function above.
+
+The function gets the value of the SecondTmr.tim value from the Nextion in order to determine what value to set the Nextion dimTime variable to. dimTime is declared in Program.S. dimTime is in seconds.
+
+Note that tis function ONLY waits for 100ms for a reply from the Nextion. If there are command stacked up in the Nextion input command buffer the value will not be set.
+
+To confirm that the command buffer is empty you could use the `askSerialBufferClear(uint32_t timeout);` to make sure that the serial command buffer is clear before using this command. On the other hand you might be using it during setup in which case there is likely to be less demand on the Nextion.
+
+Note that the screenDimTime will default to 3 minutes again after a Nextion reset.
+
+Also sets up software for bkcmd=1 or 3 situations.
+
+
+
+###### bool turnDebugOn(bool on);
+
+I have a variable debug, declared in Program.s, that is used to change the speed of a number of timers if set to 0 or 1. For obvious reasons I call it debug. 
+
+Timings that would normally take many minutes can be done in a matter of seconds, thereby making debugging much quicker.
+
+Turn Nextion `debug` variable on or off.
+
+Usage:
+
+​	`turnDebugOn( true )`  - Turn debug on
+
+​	`turnDebugOn( false )` - Turn debug off
+
+Also sets up software for bkcmd=1 or 3 situations.
+
+
+
+### Nextion Controlling hardware
+
+I use the passage of data in numbers to allow the Nextion display to control hardware. This is done by the use of a callback function. In order to set the callback function use setValveCallBack(nextionTurnValveOnOffCallbackFunc func);
+
+###### void setValveCallBack(nextionTurnValveOnOffCallbackFunc func);
+
+Passes the Nextion the call back function to turn a valve on or off.
+
+In the NextionExample program I pass the following CallBack procedure:
+
+```
+/**********************************************************
+*      Call back fn for Nextion Valve change request      *
+***********************************************************/
+void SetValveOnOrOff_FromNextion(uint32_t which, bool how) {
+	switch (which) {
+		case 0 ... 4:   // valves
+			if (how == open) {
+				Serial.print("Opening valve "); Serial.println(which);
+				// OpenControlValve((controlValveIdType)which, true);
+			}else {
+				Serial.print("Closing valve "); Serial.println(which);
+				//CloseControlValve((controlValveIdType)which, true);
+			}
+			break;
+		case 5:
+			Serial.print("Turning Boiler ");
+			if (how) Serial.println("On"); else Serial.println("Off");
+			//if (!TurnBoiler(how, true)) {}
+			break;
+		case 6:
+			Serial.print("Turning Hot Water ");
+			if (how) Serial.println("On"); else Serial.println("Off");
+			//if (!TurnHW(how, true)) {}
+			break;
+		default:
+		Serial.println("In fn SetValveOnOrOff_FromNextion, don't know how I got here.");
+		break;
+	}
+}
+```
+
+In the above function I just output text messages but this is where you could add your own code to doi some hardware control.
+
+
+
+###### void turnNextionButton(uint8_t which, bool on);
+
+I have Nextion buttons named Sw0..Sw6. I use this function to set the relevant button on (1) or off (0).
+
+I have ghosted this function with the phrase "turnNextionValve" using...
+
+​										 `#define turnNextionValve turnNextionButton`) 
+
+​																																.. since some of the buttons are controlling valves and it makes more sense in the code to refer to them as valves.
+
+
+
+###### void setHotWaterOnForMins(uint8_t howLong);
+
+This is somewhat clever. Teensy sets the hot water on and sends a command to the Nextion to turn off the hot water in "howLong" minutes.
+
+When the Nextion receives this command (via a numeric value in a Number Variable) it turns the display for the valve open "on" and when the timeout occurs it sends a command to the Teensy to turn off the hotwater. 
+
+This is done via the callback setup via the setValveCallBack(nextionTurnValveOnOffCallbackFunc func)function.
+
+Thus some timing control is offloaded to the Nextion.
+
+
+

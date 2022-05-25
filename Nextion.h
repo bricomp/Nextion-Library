@@ -80,6 +80,10 @@ Revision		    Date		Author			Description
 											see setBkcmdLevel for explanation.
   1.40	10/05/2022	Robert E Bridges	- Added lastComdCompletedOk as a complement to setBkcmdLevel above.
 										- Added timeout to getReply
+  1.50	25/05/2022	Robert E Bridges	- Added setScreenDimTime
+										- Changed getNumVarValue error return to -1 from 0xFFFF.
+										- Added a const char revision to reflect the revision.
+										  duplicated with revisionNum to better allow checking/comparison.
 */
 
 #include "Arduino.h"
@@ -293,6 +297,9 @@ class Nextion {
 		typedef void (*setNextionBaudCallbackFunc) (uint32_t);				// create function pointer type
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
 
+		const char		revision[5]		 = "1.50";
+		const uint16_t  revisionNum		 = 150;
+
 		uint32_t		baudRate		 = 9600;
 		const uint32_t	resetNextionBaud = baudRate;
 		uint32_t		recoveryBaudRate = baudRate;		// used for recovery when changing baud rate does not work
@@ -480,7 +487,7 @@ class Nextion {
 *		Teensy BaudRate accordingly.														*
 *********************************************************************************************/
 		void setNextionBaudRate(uint32_t br);
-
+/**/
 /********************************************************************************************
 *		setBackLight(uint32_t backLight) - Sets the display BackLight(0..100).				*
 *-------------------------------------------------------------------------------------------*
@@ -492,7 +499,7 @@ class Nextion {
 /********************************************************************************************
 *		getNumVarValue(const char* varName) - Gets the value of Nextion Variable.			*
 *-------------------------------------------------------------------------------------------*
-*       Waits for up to 100ms for a reply. If no reply returns 0xFFFF.						*
+*       Waits for up to 100ms for a reply. If no reply returns -1.							*
 *       In reality this command should only be sent when the Nextion Serial buffer is		*
 *       empty otherwise, any reply may be from previously stacked up Nextion commands		*
 *		and therefore be erroneous.															*
@@ -550,7 +557,7 @@ class Nextion {
 *       determine if the Nextion input Serial Buffer is Clear.                             	*
 *********************************************************************************************/
 		bool askSerialBufferClear(uint32_t timeout);
-
+/**/
 /********************************************************************************************
 *		turnNextionButton(uint8_t which, bool on)											*
 *		I have Nextion buttons named Sw0..Sw6. I use this function to set the relevant      *
@@ -561,7 +568,7 @@ class Nextion {
 *********************************************************************************************/
 #define turnNextionValve turnNextionButton
 		void turnNextionButton(uint8_t which, bool on);
-
+/**/
 /********************************************************************************************
 *		setHotWaterOnForMins(uint8_t howLong)												*
 *-------------------------------------------------------------------------------------------*
@@ -596,7 +603,7 @@ class Nextion {
 *		   setDaylightSavingOn( false ) - Turn off             								*
 *********************************************************************************************/
 		bool setDaylightSavingOn(bool on);
-
+/**/
 /********************************************************************************************
 *		turnDebugOn(bool on) - Turn Nextion debug variable on or off						*
 *-------------------------------------------------------------------------------------------*
@@ -605,7 +612,15 @@ class Nextion {
 *		   turnDebugOn( false ) - Turn debug off             								*
 *********************************************************************************************/
 		bool turnDebugOn(bool on);
-
+/**/
+/********************************************************************************************
+*		setScreenDimTime(uint32_t dimTime) - Sets the time, in seconds, after which			*
+*											 the screen will dim if screen dimming is		*
+*											 turned on.										*
+*											 The default is 3 minutes.						*
+*********************************************************************************************/
+		bool setScreenDimTime(uint32_t dimTime);
+/**/
 /********************************************************************************************
 *		turnScreenDimOn(bool on) - Turn Nextion dimAllowed variable on or off				*
 *-------------------------------------------------------------------------------------------*
@@ -614,7 +629,7 @@ class Nextion {
 *		   turnScreenDimOn( false ) - Turn Dim off             								*
 *********************************************************************************************/
 		bool turnScreenDimOn(bool on);
-
+/**/
 /********************************************************************************************
 *		setValveCallBack(nextionTurnValveOnOffCallbackFunc func) - passes the Nextion the   *
 *		call back function to turn a valve on or off										*

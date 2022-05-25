@@ -790,7 +790,9 @@ void Nextion::setNextionBaudRate(uint32_t br) {
 };
 
 void Nextion::setBackLight(uint32_t backLight) {
-	backLight = ( backLight % 100 );
+	if (backLight > 100) {
+		backLight = 100;
+	}
 	_s->print("dim="); _s->print(backLight); _s->print("\xFF\xFF\xFF");
 #ifdef bkcmd1or3allowed
 	checkedComdCompleteOk = !checkComdComplete;
@@ -806,7 +808,7 @@ int32_t Nextion::getNumVarValue(const char* varName) {
 #ifdef debug2
 	Serial.print("get "); Serial.print(varName); Serial.println("\xFF\xFF\xFF");
 #endif
-	nextionEvent.reply7int.number32bitInt = 0xFFFF; //=No Answer
+	val.number32bitInt = -1; //=No Answer
 
 	_s->print("get "); _s->print(varName); _s->print("\xFF\xFF\xFF");
 	while ((n < 100) && (!ok)) {
@@ -901,7 +903,19 @@ bool Nextion::turnDebugOn(bool on) {
 }
 
 bool Nextion::turnScreenDimOn(bool on) {
+
 	return setNumVarValue("dimAllowed", on);
+};
+
+bool Nextion::setScreenDimTime(uint32_t dimTime) {
+	int32_t timer;
+	timer = getNumVarValue("SecondTmr.tim");
+	if (timer != -1) {
+		timer = dimTime * 1000 / timer;
+		return setNumVarValue("dimTimer", timer);
+	}else{
+		return false;
+	}
 };
 
 bool Nextion::setDaylightSavingOn(bool on) {
