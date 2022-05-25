@@ -1,11 +1,29 @@
+#define hardwareRTC
+#define usingSoftwareSerialz
+
 #include "Arduino.h"
 #include <Stream.h>
+#ifdef hardwareRTC
+// Load your RTC Library here
 #include <RV-3028-C7.h>     // https://github.com/constiko/RV-3028_C7-Arduino_Library
+#else
+#include <TimeLib.h>
+#endif
+#ifdef usingSoftwareSerial
+#include <SoftwareSerial.h>
+#endif
 #include "Nextion.h"
 
+#ifdef usingSoftwareSerial
+SoftwareSerial NextionDisplay(2, 3);    // Choose your pins Rx,Tx
+#else
 #define NextionDisplay Serial5
+#endif
 
+#ifdef hardwareRTC
+// Create your Hardware RTC Here
 RV3028  rtc;
+#endif
 Nextion display(&NextionDisplay);
 
 elapsedMillis	nextionTime;
@@ -131,9 +149,11 @@ void setup() {
 	nextionTime = 0;
 	DisplayInBox(92, 85, "OK, should now have control",0,3000);
 	DisplayInBox(92, 85, "             Just setting up the Teensy RTC                       and Update time on Nextion",0, 3000);
-	Wire.begin();
 	Serial.println("Just starting");
 
+
+#ifdef hardwareRTC
+	Wire.begin();
 	/********************************************************************
 	*           This is for the RV-3028-C7 RTC that I am using.			*
 	*			Replace with code for your own RTC.						*
@@ -147,9 +167,11 @@ void setup() {
 		DisplayInBox(92, 85, "Unable to get time from RTC", 0,3000);
 		Serial.println("Unable to get time from RTC");
 	}
+#endif
 
 	DisplayInBox(92, 85, "OK, that went fine", 0,2000);
 
+#ifdef hardwareRTC
 	if (rtc.updateTime()) //Updates the time variables from RTC
 	{
 		uint32_t time = (uint32_t)rtc.getHours() * 0x10000 + (uint32_t)rtc.getMinutes() * 0x100 + (uint32_t)rtc.getSeconds();
@@ -162,7 +184,10 @@ void setup() {
 		DisplayInBox(92, 85, "RTC failed to update", 0, 3000);
 		Serial.print("RTC failed to update");
 	}
-
+#else
+	uint32_t time = hour() * 0x10000 + (uint32_t)minute() * 0x100 + (uint32_t)second();
+	display.setTime(time);
+#endif
 	DisplayInBox(92, 85, "Just set-up the Teensy RTC",0,3000);
 	display.setNextionBaudRate(115200);
 
