@@ -281,12 +281,8 @@ enum bkcmdStateType {
 	always		// = 3
 };
 
-//uint8_t bollocks;// bkcmd = top;// onFailure;		// Nextion bkcmd Value
-
 const uint8_t  boilerButton	= 5;
 const uint8_t  hwButton		= 6;
-
-//uint8_t newvar;
 
 class Stream;
 
@@ -356,7 +352,7 @@ class Nextion {
 *		below after a command or before the next command to determine that the (last)		*
 *		command completed ok.																*
 *       level is ONLY allowed to be 1 or 3 if compiled with #define bkcmd1or3allowed in		*
-*		Nextiopn.cpp.																		*
+*		Nextion.cpp.																		*
 *********************************************************************************************/
 		void setBkCmdLevel(bkcmdStateType level);
 /**/
