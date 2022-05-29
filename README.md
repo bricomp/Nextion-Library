@@ -4,10 +4,6 @@
 
 In the Examples folder is the HMI file NextionExample.HMI and the ION file NextionExample.ino which were developed to demonstrate this library.
 
-To view this document WITH graphic images see README.pdf. There is also a README.docx but that does NOT maintain the formatting.
-
-Alternatively download the complete library resource and README.md will suddenly and miraculously display the graphic images.
-
 This ReadMe is a little wordy but tries to explain all the nuances of using Nextion. For a more concise explanation see the Nextion.h file or the information in resources.
 
 Use this code as a framework to produce your own Nextion Library.
