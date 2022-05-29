@@ -18,7 +18,7 @@ This library is intended to be used to create your own Nextion Library. Most of 
 
 Below is the page0 screen of my Nextion Project which led to the development of this Library.
 
-![page0Screen](.\Resources-Graphic\page0Screen.jpg)
+![page0Screen](./Resources-Graphic/page0Screen.jpg)
 
 The function that you will mostly alter is the "respondToReply()" function.
 I developed this library to control the valves in my Home Heating system, so there are functions
@@ -715,7 +715,7 @@ The attributes for the Nextion components are shown below.
 
 All that is needed now is to align the hour, timeSep and minute on the screen.
 
-![Attributes](.\Resources-Graphic\Attributes.jpg)
+![Attributes](./Resources-Graphic/Attributes.jpg)
 
 
 
@@ -855,7 +855,7 @@ Clears the Nextion page1 Text screen Top Line.
 
 #### Nextion Text Page Format
 
-![page1](.\Resources-Graphic\page1.jpg)
+![page1](./Resources-Graphic/page1.jpg)
 
 The page1 is shown above in the Nextion Editor View.
 
@@ -865,13 +865,13 @@ The actual screen has text lines, obviously, ranging with a component id of 1 at
 
 The format of the text lines is as shown below.
 
-![txtLineAttribute](.\Resources-Graphic\txtLineAttribute.jpg)
+![txtLineAttribute](./Resources-Graphic/txtLineAttribute.jpg)
 
 page1 also has text variables (named va0..va201). It is MANDATORY that the text variables, starting at va1, have ids from 20 to 220 with NO GAPS in the numbering. va0 can have any id number except 1..220 and it's variable name MUST remain at va0 (that's va + zero).
 
 The attributes of the txt Variables is as below:
 
-![txtVarAttrib](.\Resources-Graphic\txtVarAttrib.jpg)
+![txtVarAttrib](./Resources-Graphic/txtVarAttrib.jpg)
 
 All of the above need some Nextion Variables, Components and code. This is described below.
 
@@ -901,7 +901,7 @@ msg (Variable:txt), tmp (Variable:txt), m0 (Hotspot)
 
 Their attributes are as shown below:
 
-![pg1ComptAttribs](.\Resources-Graphic\pg1ComptAttribs.jpg)
+![pg1ComptAttribs](./Resources-Graphic/pg1ComptAttribs.jpg)
 
 The m0 code is shown below.
 
@@ -1026,7 +1026,7 @@ The same as page0 the variable tmp must exist with the same attributes as was th
 
 Further to the above a hotspot ClrScr must exist along with a Slider variable named scrollSlider. Their attributes are as shown below:
 
-![page1attribs](.\Resources-Graphic\page1attribs.jpg)
+![page1attribs](./Resources-Graphic/page1attribs.jpg)
 
 The ClrScr Touch Press Event Code is shown below
 
@@ -1142,7 +1142,7 @@ Typical usage:
 
 Within each of the 3 rows of 8 leds, made from Radio components with the following attributes
 
-![LedAttribs](.\Resources-Graphic\LedAttribs.jpg)
+![LedAttribs](./Resources-Graphic/LedAttribs.jpg)
 
 It is important that all the leds in each row are in increasing id values with no gaps. In my case the top row have ids from 16..23, middle row 26.33 and the bottom row 34..41.
 
