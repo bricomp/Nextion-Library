@@ -2,7 +2,7 @@
 
 #### PLEASE ALSO READ THE Nextion.h DOCUMENT IN Resources
 
-In the Examples folder is the HMI file NextionExample.HMI and the ION file NextionExample.ino which were developed to demonstrate this library.
+In the Examples folder is the HMI file NextionExample.HMI and the INO file NextionExample.ino which were developed to demonstrate this library.
 
 This ReadMe is a little wordy but tries to explain all the nuances of using Nextion. For a more concise explanation see the Nextion.h file or the information in resources.
 
