@@ -291,7 +291,7 @@ void loop() {
 
 	display.turnNextionButton(6, false);
 	DisplayClock(true);
-	NextionDisplay.print("page 1\xFF\xFF\xFF");
+	display.gotoPage(1);
 	delay(100);  display.printAnyReturnCharacters(nextionTime, 100);
 	Serial.println("OK So nothing came back");
 	Serial.println("Just sending text to Nextion without the library...Naughty");
@@ -331,7 +331,7 @@ void loop() {
 	delay(10000);  //10 seconds
 
 	Serial.println("page 0");
-	NextionDisplay.print("page 0\xFF\xFF\xFF");
+	display.gotoPage(0);
 	nextionTime = 0;
 	while (1) {
 
