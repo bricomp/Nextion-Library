@@ -859,7 +859,7 @@ Clears the Nextion page1 Text screen Top Line.
 
 The page1 is shown above in the Nextion Editor View.
 
-![page1scrn](.\Resources-Graphic\page1scrn.jpg)
+![page1scrn](./Resources-Graphic/page1scrn.jpg)
 
 The actual screen has text lines, obviously, ranging with a component id of 1 at the bottom up to 19 at the top. The top text line is called TopTextLn. It is important that this name is maintained as this is used when writing to or clearing the top line.
 
