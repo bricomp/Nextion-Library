@@ -851,7 +851,7 @@ void Nextion::sendCommand(const char* command) {
 #endif
 	_s->print(command); _s->print("\xFF\xFF\xFF");
 #ifdef bkcmd1or3allowed
-	if (ok) checkedComdCompleteOk = !checkComdComplete;
+	checkedComdCompleteOk = !checkComdComplete;
 #endif
 };
 
@@ -861,7 +861,7 @@ void Nextion::sendCommand(const char* command, uint32_t num) {
 #endif
 	_s->print(command); _s->print(num); _s->print("\xFF\xFF\xFF");
 #ifdef bkcmd1or3allowed
-	if (ok) checkedComdCompleteOk = !checkComdComplete;
+	checkedComdCompleteOk = !checkComdComplete;
 #endif
 };
 
@@ -875,7 +875,7 @@ void Nextion::Nextion::sendCommand(const char* command, const char* txt, bool en
 	if (encloseText) _s->print("\"");
 	_s->print("\xFF\xFF\xFF");
 #ifdef bkcmd1or3allowed
-	if (ok) checkedComdCompleteOk = !checkComdComplete;
+	checkedComdCompleteOk = !checkComdComplete;
 #endif
 };
 
@@ -954,6 +954,13 @@ bool Nextion::isSerialBufferClear() {
 		if (respondToReply()){}
 	}
 	return serialBufferClear;
+};
+
+void Nextion::gotoPage(uint32_t which) {
+	_s->print("page "); _s->print(which); _s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
 };
 
 /********************************************************************************************
