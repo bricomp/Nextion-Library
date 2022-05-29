@@ -84,6 +84,7 @@ Revision		    Date		Author			Description
 										- Changed getNumVarValue error return to -1 from 0xFFFF.
 										- Added a const char revision to reflect the revision.
 										  duplicated with revisionNum to better allow checking/comparison.
+  1.55	29/05/2022	Robert E Bridges	- Added gotoPage.
 */
 
 #include "Arduino.h"
@@ -293,8 +294,8 @@ class Nextion {
 		typedef void (*setNextionBaudCallbackFunc) (uint32_t);				// create function pointer type
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
 
-		const char		revision[5]		 = "1.50";
-		const uint16_t  revisionNum		 = 150;
+		const char		revision[5]		 = "1.55";
+		const uint16_t  revisionNum		 = 155;
 
 		uint32_t		baudRate		 = 9600;
 		const uint32_t	resetNextionBaud = baudRate;
@@ -483,7 +484,7 @@ class Nextion {
 *		Teensy BaudRate accordingly.														*
 *********************************************************************************************/
 		void setNextionBaudRate(uint32_t br);
-
+/**/
 /********************************************************************************************
 *		gotoPage(uint32_t which); - Sets which as active displayed page.					*
 *********************************************************************************************/

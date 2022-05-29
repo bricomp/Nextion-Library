@@ -423,6 +423,14 @@ If a command does not normally return a value, such as this command, and bkcmd i
 
 The current state of bkcmd can be determined by examining `display.bkcmd`.
 
+
+
+###### void gotoPage(uint32_t which);
+
+Sets which as active displayed page.
+
+
+
 ###### bool lastComdCompletedOk(uint32_t timeout);
 
 Returns ret true/false if last comd completed ok after allowing timeout ms for the reply to be made.
