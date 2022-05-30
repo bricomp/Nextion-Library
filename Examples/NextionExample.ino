@@ -75,11 +75,11 @@ void DisplayPageZero() {
 
 void DisplayClock(bool displayIt) {
 
-	uint8_t viz;
+	uint32_t viz;
 	if (displayIt) viz = 1; else viz = 0;
-	NextionDisplay.print("vis hour,"); NextionDisplay.print(viz); NextionDisplay.print("\xFF\xFF\xFF");
-	NextionDisplay.print("vis minute,"); NextionDisplay.print(viz); NextionDisplay.print("\xFF\xFF\xFF");
-	NextionDisplay.print("vis timeSep,"); NextionDisplay.print(viz); NextionDisplay.print("\xFF\xFF\xFF");
+	display.sendCommand("vis hour,", viz);
+	display.sendCommand("vis minute,", viz);
+	display.sendCommand("vis timeSep,", viz);
 }
 
 /**********************************************************
