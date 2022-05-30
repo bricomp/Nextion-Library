@@ -488,7 +488,8 @@ class Nextion {
 /********************************************************************************************
 *		gotoPage(uint32_t which); - Sets which as active displayed page.					*
 *********************************************************************************************/
-	void gotoPage(uint32_t which);
+#define gotoPage sendCommand
+
 /**/
 /********************************************************************************************
 *		setBackLight(uint32_t backLight) - Sets the display BackLight(0..100).				*
