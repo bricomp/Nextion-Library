@@ -163,6 +163,10 @@ Of course the Nextion is a HMI (Human Machine Interface) and it would be expecte
 
 This is handled by the `getReply(timeout)` and `respondToReply()` functions.
 
+`getReply(timeout)` is used to see if there is any response from the Nextion and if there is to gather the data (in the variable `nextionEvent`).
+
+`repondToReply` is used to decode the data in the variable `nextionEvent` and to act accordingly, or to signal that further action is required to fully act upon the data from the Nextion.
+
 The *getReply()* function can be used in two forms `display.getReply()` and `display.getReply(timeout)`. In the first the serial port is simply checked for any returned characters. If there are none then *false* is returned. In the second form the function waits for timeout ms or a character to appear.
 
 If there is a reply from Nextion then the reply char (id) is received and the required number of following char/bytes dependant upon the value of the Id. The first character returned is known as the id character.
@@ -186,7 +190,7 @@ I like to have requests from the Nextion Display embedded into numbers.
 
 Within this code I want to turn valves on or off. The number returned by the Nextion contains  the valve to be moved and whether it should be opened or closed (0 or 1). 
 
-If you have handled the Nextion response fully then set *needsResponse* to *false*.  
+In your code added to "respondToReply", if you have handled the Nextion response fully then set *needsResponse* to *false*.  
 
 Below is the listing for *respondToReply*.
 
@@ -278,9 +282,11 @@ Below is the listing for *respondToReply*.
 					if (nextionAutoBaud){
 						needsResponse = false;
 					}
+					break;
 				case 0xFDFD: // Indicates Nextion Serial Buffer Clear
 					serialBufferClear	= true;
 					needsResponse		= false;
+					break;
 				default:
 					Serial.print("Some other NumericDataEnclosed data|: ");
 					Serial.print(nextionEvent.reply7.num[0], HEX); Serial.print(" ");
