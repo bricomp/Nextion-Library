@@ -40,40 +40,41 @@ bool Nextion::getReply(uint32_t timeout = 0) {
 		nextionEvent.id = _s->read();
 
 		switch (nextionEvent.id) {
-		case invalidInstruction ... invalidFileOperation:		// 0x00 ... 0x06: //
-		case invalidCrc:										// 0x09
-		case invalidBaudRateSetting ... invalidWaveformIdChan:	// 0x11..0x12
-		case invalidVarNameAttrib ... invalidEscapeChar:		// 0x1A..0x20
-		case variableNameToLong:								// 0x23
-		case serialBufferOverflow:								// 0x24
-			len = 3;
-			break;
-		case touchEvent:										// 0x65
-			len = 6;
-			break;
-		case currentPageNumber:									// 0x66
-			len = 4;
-			break;
-		case touchCoordinateAwake ... touchCoordinateSleep:		// 0x67..0x68
-			len = 8;
-			break;
-		case stringDataEnclosed:								// 0x70
-			len = 0;
-			break;
-		case numericDataEnclosed:								// 0x71
-			len = 7;
-			break;
-		case autoEnteredSleepMode ... powerOnMicroSDCardDet:	// 0x86..0x89
-		case transparentDataFin ... transparentDataReady:		// 0xFD..0xFE
-			len = 3;
-			break;
-		default:
-			break;
+			
+			case invalidInstruction ... invalidFileOperation:		// 0x00 ... 0x06: //
+			case invalidCrc:										// 0x09
+			case invalidBaudRateSetting ... invalidWaveformIdChan:	// 0x11..0x12
+			case invalidVarNameAttrib ... invalidEscapeChar:		// 0x1A..0x20
+			case variableNameToLong:								// 0x23
+			case serialBufferOverflow:								// 0x24
+				len = 3;
+				break;
+			case touchEvent:										// 0x65
+				len = 6;
+				break;
+			case currentPageNumber:									// 0x66
+				len = 4;
+				break;
+			case touchCoordinateAwake ... touchCoordinateSleep:		// 0x67..0x68
+				len = 8;
+				break;
+			case stringDataEnclosed:								// 0x70
+				len = 0;
+				break;
+			case numericDataEnclosed:								// 0x71
+				len = 7;
+				break;
+			case autoEnteredSleepMode ... powerOnMicroSDCardDet:	// 0x86..0x89
+			case transparentDataFin ... transparentDataReady:		// 0xFD..0xFE
+				len = 3;
+				break;
+			default:
+				break;
+
 		}
 
 		if (nextionEvent.id == stringDataEnclosed) { // read string data done in respondToReply()
-		}
-		else
+		}else
 		{
 			timeOut = 0;
 			n = 0;
@@ -444,23 +445,24 @@ bool Nextion::reset(uint32_t br){
 	delay(20);
 
 	switch (br) {
-	case 0:				// don't bother chainging Baud Rate
-		baud = resetNextionBaud;
+		case 0:				// don't bother changing Baud Rate
+			baud = resetNextionBaud;
 #ifdef debugr
-		Serial.println("Using Reset Baud");
+			Serial.println("Using Reset Baud");
 #endif
-		break;
-	case 1:
-		baud = savedBaud;
+			break;
+		case 1:
+			baud = savedBaud;
 #ifdef debugr
-		Serial.println("Using Previous Baud");
+			Serial.println("Using Previous Baud");
 #endif
-	default:
+			break;    // vs 1.56 break missing
+		default:
 #ifdef debugr
-		Serial.println("Changing Baud Rate");
+			Serial.println("Changing Baud Rate");
 #endif
-		baud = br;
-		break;
+			baud = br;
+			break;
 	}
 	if (baud != 9600) {
 #ifdef debugt
@@ -954,13 +956,6 @@ bool Nextion::isSerialBufferClear() {
 		if (respondToReply()){}
 	}
 	return serialBufferClear;
-};
-
-void Nextion::gotoPage(uint32_t which) {
-	_s->print("page "); _s->print(which); _s->print("\xFF\xFF\xFF");
-#ifdef bkcmd1or3allowed
-	checkedComdCompleteOk = !checkComdComplete;
-#endif
 };
 
 /********************************************************************************************

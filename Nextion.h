@@ -85,6 +85,7 @@ Revision		    Date		Author			Description
 										- Added a const char revision to reflect the revision.
 										  duplicated with revisionNum to better allow checking/comparison.
   1.55	29/05/2022	Robert E Bridges	- Added gotoPage.
+  1.56	03/06/2022	Robert E Bridges	- Inseted MISSING break in Nextion reset code.
 */
 
 #include "Arduino.h"
@@ -294,8 +295,8 @@ class Nextion {
 		typedef void (*setNextionBaudCallbackFunc) (uint32_t);				// create function pointer type
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
 
-		const char		revision[5]		 = "1.55";
-		const uint16_t  revisionNum		 = 155;
+		const char		revision[5]		 = "1.56";
+		const uint16_t  revisionNum		 = 156;
 
 		uint32_t		baudRate		 = 9600;
 		const uint32_t	resetNextionBaud = baudRate;
