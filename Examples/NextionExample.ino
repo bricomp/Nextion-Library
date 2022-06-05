@@ -1,14 +1,18 @@
+
 #define hardwareRTC
 #define usingSoftwareSerialz
 
+//#include "whichTeensy.h"
 #include "Arduino.h"
 #include <Stream.h>
+
 #ifdef hardwareRTC
 // Load your RTC Library here
 #include <RV-3028-C7.h>     // https://github.com/constiko/RV-3028_C7-Arduino_Library
 #else
 #include <TimeLib.h>
 #endif
+
 #ifdef usingSoftwareSerial
 #include <SoftwareSerial.h>
 #endif
@@ -16,8 +20,12 @@
 
 #ifdef usingSoftwareSerial
 SoftwareSerial NextionDisplay(2, 3);    // Choose your pins Rx,Tx
-#else
+#endif
+#if defined ARDUINO_TEENSY35 && !defined usingSoftwareSerial
 #define NextionDisplay Serial5
+#endif
+#if (!defined (ARDUINO_TEENSY35) && !defined (usingSoftwareSerial) )
+#define NextionDisplay Serial1
 #endif
 
 #ifdef hardwareRTC
@@ -150,7 +158,7 @@ void setup() {
 	DisplayInBox(92, 85, "OK, should now have control",0,3000);
 	DisplayInBox(92, 85, "             Just setting up the Teensy RTC                       and Update time on Nextion",0, 3000);
 	Serial.println("Just starting");
-
+//	Serial.print("Text Value = "); Serial.println(display.getNumVarValue("test"));
 
 #ifdef hardwareRTC
 	Wire.begin();
@@ -190,6 +198,12 @@ void setup() {
 #endif
 	DisplayInBox(92, 85, "Just set-up the Teensy RTC",0,3000);
 	display.setNextionBaudRate(115200);
+
+	display.setStrVarValue("debugTxt", "Here we are Debug Text");
+	display.viewDebugText(true);
+	display.setNumVarValue("debugTxt.xcen", 0);
+	delay(1000);
+	display.viewDebugText(false);
 
 	DisplayInBox(5, 51, "    As you can see we have some simulated                                  LEDs.                                             Just about to turn them all off", 0,10000);
 	//                     1234567890123456789012345678901234567890
@@ -247,21 +261,26 @@ void setup() {
 	display.turnNextionValve(4, open);
 	delay(2000);
 	display.turnNextionValve(4, closed);
-	delay(2000);	display.printAnyReturnCharacters(nextionTime,9);
+	delay(2000);	display.printAnyReturnCharacters(nextionTime,10);
 
 	DisplayClock(false);
 	DisplayInBox(105, 192, "               Now telling Nextion to turn                           Hot Water on for 150 Minutes.                 Time Compressed in Simulation Mode.       At timeout Teensy Messaged to turn off H/W", 0, 5000);
 
 	display.setHotWaterOnForMins(150);
-	delay(2000);	display.printAnyReturnCharacters(nextionTime,10);
+	if (display.getReply(1000)) {
+		if (display.respondToReply()) {
+			Serial.println("Response to Nextion Required");
+		};
+	}
+	delay(2000);	display.printAnyReturnCharacters(nextionTime,11);
 
 	Serial.println();
 
 	// We are still on page0 but about to write text to page1
 	display.preserveTopTextLine();
-	delay(20);	display.printAnyReturnCharacters(nextionTime, 10);
+	delay(20);	display.printAnyReturnCharacters(nextionTime, 12);
 	display.writeToTopTextLine("This is a protected top line");
-	delay(20);	display.printAnyReturnCharacters(nextionTime, 10);
+	delay(20);	display.printAnyReturnCharacters(nextionTime, 13);
 	DisplayClock(true);
 }
 
@@ -281,7 +300,7 @@ void loop() {
 		display.printCommandOrErrorTextMessage("C", "Hello from Teensy", true);
 		nextionTime = 0;
 		while (nextionTime < 2000) {
-			display.printAnyReturnCharacters(nextionTime, 11);
+			display.printAnyReturnCharacters(nextionTime, 14);
 		}
 		Serial.println(nextionTime);
 		n++;
@@ -291,38 +310,47 @@ void loop() {
 
 	display.turnNextionButton(6, false);
 	DisplayClock(true);
+	Serial.println("Goto Page 1");
 	display.gotoPage(1);
 	delay(100);  display.printAnyReturnCharacters(nextionTime, 100);
 	Serial.println("OK So nothing came back");
-	Serial.println("Just sending text to Nextion without the library...Naughty");
+//	Serial.println("Just sending text to Nextion without the library...Naughty");
 
-	Serial.println("Sending 1 bit of text to Nextion");
+//	Serial.println("Sending 1 bit of text to Nextion");
 
-	Serial.println("page0.msg.txt=\"Hello from Teensy\"");
+//	Serial.println("page0.msg.txt=\"Hello from Teensy\"");
 
 	display.printCommandOrErrorTextMessage("C", "Hello from Teensy", false);
 	display.printNumericText((uint32_t)n, true);
-	delay(100);  display.printAnyReturnCharacters(nextionTime, 101);
+	delay(1000);  display.printAnyReturnCharacters(nextionTime, 101);
 
 	Serial.println("Sending lot's of text to Nextion");
 
 	delay(1000);
 	nextionTime = 0;
 	for (n = 0; n < 250; n++) {
-		Serial.print("C Hello from Teensy "); Serial.print(n); Serial.print(" - ");	Serial.println(nextionTime);
+		Serial.print(n);
+		Serial.print(" C Hello from Teensy "); Serial.print(n); Serial.print(" - ");	
+//		if (n == 1) {
+			Serial.print(display.getNumVarValue("HWDwnCtr")); Serial.print(" - ");
+//		}
+		Serial.println(nextionTime);
+
+
 		display.printCommandOrErrorTextMessage("C", "Hello from Teensy ", false);
 		display.printNumericText((uint32_t)n, true);					// "true" finish Nextion command
-		delay(10);
+
 		if ((n>0) && (n % 50) == 0) {
-			if (display.askSerialBufferClear(10000)) {                  // wait for up to 10 secconds for Nextion imput buffer to clear
+			if (display.askSerialBufferClear(10000)) {           // wait for up to 10 secconds for Nextion imput buffer to clear
 				Serial.println("Serial buffer clear");					// every 50 times through loop
 			} else
 			{
 				display.printAnyReturnCharacters(nextionTime, 102);
 			};
 		}
-		display.printAnyReturnCharacters(nextionTime, 103);
+		display.printAnyReturnCharacters(nextionTime, 1103);
 		if (n == 150) {
+
 			display.sendCommand("vis CommentBox,0");					// at the 150th iteration turn off CommentBox
 		}
 	}
@@ -331,8 +359,10 @@ void loop() {
 	delay(10000);  //10 seconds
 
 	Serial.println("page 0");
+
 	display.gotoPage(0);
 	nextionTime = 0;
+
 	while (1) {
 
 		DisplayInBox(92, 115, "     Using getReply() and respondToReply()                              for 1 minute.                                          Press some switch buttons                                  and see what happens", 0, 0);
