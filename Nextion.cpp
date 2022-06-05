@@ -931,7 +931,7 @@ void Nextion::gotoPage(uint32_t which) {
 	sendCommand("page ", which);
 }
 
-void Nextion::Nextion::sendCommand(const char* command, const char* txt, bool encloseText) {
+void Nextion::sendCommand(const char* command, const char* txt, bool encloseText) {
 #ifdef debugt3
 	Serial.print(command); Serial.print(txt); Serial.println("\xFF\xFF\xFF");
 #endif
@@ -959,6 +959,48 @@ bool Nextion::setNumVarValue(const char* varName, int32_t var) {
 #ifdef bkcmd1or3allowed
 	if (ok) checkedComdCompleteOk = !checkComdComplete;
 #endif
+	return ok;
+};
+
+#define debugsfz
+bool Nextion::setNumVarFloat(const char* varName, float_t fvar, uint8_t dp, bool round) {
+
+	int32_t		intValue;
+	uint32_t	dpPos		= 0;
+	float_t		multiplier	= 1.0;
+	float_t		rounder		= 0.0;
+	bool		ok			= false;
+
+	if (round) {
+		rounder  = 0.5;
+	}
+	while (dpPos < dp) {
+		multiplier = multiplier * 10.0;
+		dpPos++;
+	}
+	intValue = (int32_t)((fvar * multiplier ) + rounder);
+
+#ifdef debugsf
+	Serial.print("intValue= "); Serial.println(intValue);
+	Serial.print(varName); Serial.print(".val"); Serial.print("="); Serial.print(intValue); Serial.println("\xFF\xFF\xFF");
+#endif
+
+	_s->print(varName); _s->print(".val");  _s->print("="); _s->print(intValue); _s->print("\xFF\xFF\xFF");
+	if (!getReply(100)) {
+
+#ifdef debugsf
+		Serial.print(varName); Serial.print(".vvs1"); Serial.print("="); Serial.print(dp); Serial.println("\xFF\xFF\xFF");
+#endif
+
+		_s->print(varName); _s->print(".vvs1");  _s->print("="); _s->print(dp); _s->print("\xFF\xFF\xFF");
+		ok = !getReply(100);
+
+	};
+
+#ifdef bkcmd1or3allowed
+if (ok) checkedComdCompleteOk = !checkComdComplete;
+#endif
+
 	return ok;
 };
 

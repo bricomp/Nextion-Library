@@ -97,6 +97,7 @@ Revision		    Date		Author			Description
 										- getStringVarValue corrected.
 										- gotoPage corrected.
 										- Tidied up various timeout values.
+  1.65	05/06/2022	Robert E Bridges	- Added setNumVarFloat.
 */
 
 #include "Arduino.h"
@@ -308,8 +309,8 @@ class Nextion {
 		typedef void (*setNextionBaudCallbackFunc) (uint32_t);				// create function pointer type
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
 
-		const char		revision[5]		 = "1.60";
-		const uint16_t  revisionNum		 = 160;
+		const char		revision[5]		 = "1.65";
+		const uint16_t  revisionNum		 = 165;
 
 		uint32_t		baudRate		 = 9600;
 		const uint32_t	resetNextionBaud = baudRate;
@@ -582,7 +583,7 @@ class Nextion {
 *       an answer.																			*
 *********************************************************************************************/
 		bool getStringVarValue(const char* varName);
-/**/(**)
+/**/
 /********************************************************************************************
 *		setNumVarValue(const char* varName, int32_t var ) - Sets Nextion Variable to var.	*
 *-------------------------------------------------------------------------------------------*
@@ -595,6 +596,24 @@ class Nextion {
 *		The varName MUST exist.                           									*
 *********************************************************************************************/
 		bool setNumVarValue(const char* varName, int32_t var);
+/**/
+/********************************************************************************************
+*		bool setNumVarFloat(const char* varName, float_t fvar, uint8_t dp, bool round)		*
+*														- Sets Nextion Variable to fvar,	*
+*																with dp decimal points		*
+*																	rounded to dp or not.	*
+*-------------------------------------------------------------------------------------------*
+*       NOTE that the ".val" varName suffix MUST NOT be sent.								*
+*-------------------------------------------------------------------------------------------*
+*       Usage:                                                                              *
+*       if (display.setNumVarFloat( "x0", 1234.5678, 2, true ) {....						*
+*														displays 1234.57 in x0.				*
+*       if (display.setNumVarFloat( "x0", 1234.5678, 2, false ) {....						*
+*														displays 1234.56 in x0.				*
+*-------------------------------------------------------------------------------------------*
+*		The varName MUST exist.                           									*
+*********************************************************************************************/
+		bool setNumVarFloat(const char* varName, float_t fvar, uint8_t dp, bool round);
 /**/
 /********************************************************************************************
 *		setStrVarValue(const char* varName, const char* var ) - Sets String Variable to var.*

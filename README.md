@@ -573,6 +573,23 @@ The varName MUST exist.
 
 
 
+###### bool setNumVarFloat(const char* varName, float_t fvar, uint8_t dp, bool round);
+
+Sets Nextion Variable to `fvar`, with `dp` decimal points, rounded to `dp` decimal points or not.
+
+
+NOTE that the ".val" varName suffix MUST NOT be sent.
+
+The varName MUST exist. 
+
+```
+if (display.setNumVarFloat( "x0", 1234.5678, 2, true ) {....//	displays 1234.57 in x0.	
+
+if (display.setNumVarFloat( "x0", 1234.5678, 2, false ) {....//	displays 1234.56 in x0.	 
+```
+
+
+
 ###### bool setStrVarValue(const char* varName, const char* var);
 
 Sets String Variable to var.
