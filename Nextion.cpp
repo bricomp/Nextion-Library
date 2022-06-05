@@ -526,7 +526,7 @@ bool Nextion::GetNextionString() {
 	uint8_t		  fFCount = 0;
 	char		  c;
 
-	while (!_s->available() && t < 10) {}
+	while (!_s->available() && t < getStrVarTimeout) {}
 	if (_s->available()) {
 		stringWaiting = false;
 		txtBufCharPtr = 0;
@@ -708,7 +708,7 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 	return needsResponse;
 }
 
-void Nextion::printAnyReturnCharacters(uint32_t nextionTime, uint8_t id) {
+void Nextion::printAnyReturnCharacters(uint32_t nextionTime, uint32_t id) {
 	elapsedMillis t;
 	bool		  gotFF = false;
 	uint8_t		  fFCount = 0;
@@ -802,48 +802,108 @@ void Nextion::setBackLight(uint32_t backLight) {
 }
 
 #define debug2z
+#define dispTimeToGetNumz
+
 int32_t Nextion::getNumVarValue(const char* varName) {
-	elapsedMillis n;
-	bool		  ok = false;
 	rep7IntType	  val;
+
+#ifdef dispTimeToGetNum
+	elapsedMillis t;
+#endif 
+
+#ifdef debug2
+	Serial.print("get "); Serial.print(varName); Serial.println("\xFF\xFF\xFF");
+#endif
+
+	val.number32bitInt = -1; //=No Answer
+
+#ifdef dispTimeToGetNum
+	t = 0;
+#endif
+
+	_s->print("get "); _s->print(varName); _s->print("\xFF\xFF\xFF");
+	if (getReply(getNumVarTimeout)) {
+		val	= nextionEvent.reply7int;
+	}else
+	{
+		nextionError = true;
+		errorCode	 = errorReadingNumber_1;
+	}
+
+#ifdef dispTimeToGetNum
+	Serial.print("("); Serial.print(t); Serial.print(")");
+#endif
+
+	return val.number32bitInt;
+}
+
+int32_t Nextion::getNumVarValue(const char* varName, const char* suffixName) {
+	rep7IntType	  val;
+
+#ifdef dispTimeToGetNum
+	elapsedMillis t;
+#endif 
 
 #ifdef debug2
 	Serial.print("get "); Serial.print(varName); Serial.println("\xFF\xFF\xFF");
 #endif
 	val.number32bitInt = -1; //=No Answer
 
-	_s->print("get "); _s->print(varName); _s->print("\xFF\xFF\xFF");
-	while ((n < 100) && (!ok)) {
-		ok = getReply();
+#ifdef dispTimeToGetNum
+	t = 0;
+#endif
+
+	_s->print("get "); _s->print(varName); _s->print("."); _s->print(suffixName); _s->print("\xFF\xFF\xFF");
+	if (getReply(getNumVarTimeout)) {
+		val = nextionEvent.reply7int;
+	}else
+	{
+		nextionError = true;
+		errorCode	 = errorReadingNumber_2;
 	}
-	if (ok) {
-		val		  = nextionEvent.reply7int;
-//		tempStore = val.ans[0];	val.ans[0] = val.ans[3]; val.ans[3] = tempStore;
-//		tempStore = val.ans[1];	val.ans[1] = val.ans[2]; val.ans[2] = tempStore;
-	}
+
+#ifdef dispTimeToGetNum
+	Serial.print("("); Serial.print(t); Serial.print(")");
+#endif
+
 	return val.number32bitInt;
+};
+
+float_t Nextion::getNumVarFloat(const char* varName) {
+	int32_t		intValue;
+	float_t		floatValue;
+	uint32_t	dpPos;
+	uint32_t    divider = 1;
+	
+	intValue = getNumVarValue(varName,"val");
+	if (!nextionError) {
+		dpPos = getNumVarValue(varName, "ws1");
+		if (!nextionError) {
+			while (dpPos > 0) {
+				divider = divider * 10;
+			}
+			floatValue = ((float_t)intValue / (float_t)divider);
+		}
+	}
+	return floatValue;
 }
 
 #define debugt4z
 bool Nextion::getStringVarValue(const char* varName) {
 
-	elapsedMillis n;
-	bool		  ok = false;
-
 #ifdef debugt4
 	Serial.print("get "); Serial.print(varName); Serial.println("\xFF\xFF\xFF");
 #endif
-	_s->print("get "); _s->print(varName); _s->print("\xFF\xFF\xFF");
-	while ((n < 100) && (!ok)) {
-		ok = getReply();
-	}
-	if (ok) {
+	_s->print("get "); _s->print(varName); _s->print(".txt"); _s->print("\xFF\xFF\xFF");
+	if (getReply(getStrVarTimeout)) {
 #ifdef debugt4
 		Serial.print(nextionEvent.id, HEX); Serial.println("  Getting Nextion Return String");
 #endif
-		ok = GetNextionString();
+		return GetNextionString();
+	}else
+	{
+		return false;
 	}
-	return ok;
 }
 
 #define debugt3z
@@ -856,7 +916,7 @@ void Nextion::sendCommand(const char* command) {
 	checkedComdCompleteOk = !checkComdComplete;
 #endif
 };
-
+#define debugt3z
 void Nextion::sendCommand(const char* command, uint32_t num) {
 #ifdef debugt3
 	Serial.print(command); Serial.print(num); Serial.println("\xFF\xFF\xFF");
@@ -866,6 +926,10 @@ void Nextion::sendCommand(const char* command, uint32_t num) {
 	checkedComdCompleteOk = !checkComdComplete;
 #endif
 };
+
+void Nextion::gotoPage(uint32_t which) {
+	sendCommand("page ", which);
+}
 
 void Nextion::Nextion::sendCommand(const char* command, const char* txt, bool encloseText) {
 #ifdef debugt3
@@ -884,16 +948,29 @@ void Nextion::Nextion::sendCommand(const char* command, const char* txt, bool en
 #define debug1z
 bool Nextion::setNumVarValue(const char* varName, int32_t var) {
 
-	elapsedMillis n;
 	bool		  ok = false;
 
 #ifdef debug1
 	Serial.print(varName); Serial.print("="); Serial.print(var); Serial.println("\xFF\xFF\xFF");
 #endif
 	_s->print(varName); _s->print("="); _s->print(var); _s->print("\xFF\xFF\xFF");
-	while ((n < 100) && (!ok)) {
-		ok = !getReply();
-	}
+
+	ok = !getReply(100);
+#ifdef bkcmd1or3allowed
+	if (ok) checkedComdCompleteOk = !checkComdComplete;
+#endif
+	return ok;
+};
+
+bool Nextion::setStrVarValue(const char* varName, const char* var) {
+
+	bool ok = false;
+
+#ifdef debug1
+	Serial.print(varName); Serial.print("=\""); Serial.print(var); Serial.println("\"\xFF\xFF\xFF");
+#endif
+	_s->print(varName); _s->print(".txt=\""); _s->print(var); _s->print("\"\xFF\xFF\xFF");
+	ok = !getReply(100);
 #ifdef bkcmd1or3allowed
 	if (ok) checkedComdCompleteOk = !checkComdComplete;
 #endif
@@ -905,16 +982,16 @@ bool Nextion::turnDebugOn(bool on) {
 }
 
 bool Nextion::turnScreenDimOn(bool on) {
-
+//	Serial.print("dimAllowed="); Serial.println(on);
 	return setNumVarValue("dimAllowed", on);
 };
 
 bool Nextion::setScreenDimTime(uint32_t dimTime) {
 	int32_t timer;
-	timer = getNumVarValue("SecondTmr.tim");
+	timer = getNumVarValue("SecondTmr.tim");  // Gets timer value from whatever page it's on. Both timers synchronise themselves
 	if (timer != -1) {
 		timer = dimTime * 1000 / timer;
-		return setNumVarValue("dimTimer", timer);
+		return setNumVarValue("dimTmr", timer);
 	}else{
 		return false;
 	}
@@ -993,4 +1070,15 @@ bool Nextion::lastComdCompletedOk(uint32_t timeout) {
 #else
 	return true;
 #endif
+};
+
+void Nextion::viewDebugText(bool view) {
+	if (view) {
+		sendCommand("vis debugTxt,1");
+		sendCommand("ref debugTxt");
+		sendCommand("setlayer debugTxt,255");
+	}else
+	{
+		sendCommand("vis debugTxt,0");
+	}
 };

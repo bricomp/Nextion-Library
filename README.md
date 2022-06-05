@@ -460,20 +460,50 @@ The process of setting bkcmd to 1 or 3 is as below:
 
 ###### int32_t getNumVarValue(const char* varName);
 
-Gets the value of Nextion Variable varName.
+###### int32_t getNumVarValue(const char* varName, const char* suffixName);
 
-Waits for up to 100ms for a reply. If no reply returns -1.
+In the first case gets the value of Nextion Variable `varName`.
+
+In the second case returns the value of a variable suffix as in: `getNumVarValue( "x0","ws1")` to get the number of dp for a Nextion float variable.  NOTE that the "." in "x0.ws1" is provided by the function.
+
+In both cases thefunction waits for up to 1000ms for a reply. If no reply returns -1.
+
+The wait time is controlled by the variable `getNumVarTimeout` which is initially  set to 1000 ms.
+
+Since -1 can alse be a valid return value nextionError is set on error and the error is reported in errorCode as errorReadingNumber_1 or errorReadingNumber_2 dependant upon which form of getNumVarValue is used
 
 In reality this command should only be sent when the Nextion Serial buffer is empty otherwise, any reply may be from previously stacked up Nextion commands and therefore be erroneous.
 
 The varName MUST exist.
 
 ```
-int32 sys0Value;
+int32 sys0Value, va0Value;
 
 sys0value = display.getNumVarValue("sys0");
-if (sys0value==0xFFFF){
+if (sys0value==-1){    // should/could also check display.nextionError
 	Serial.println("Unable to get value of sys0");
+}
+va0Value = display.getNumVarValue("va0","val");  // returns value of "va0.val"
+```
+
+
+
+###### float_t  getNumVarFloat(const char* varName);
+
+This function returns a float from a Nextion Float variable, it uses `getNumVarValue` to get the various components of a Nextion float. Wait times will be a combination of the two `getNumVarValue` wait times.
+
+If an error occurs `nextionError` will be set to true and the value returned should NOT be relied upon. The error is reported in `errorCode` as `errorReadingNumber_2`.
+
+In reality this command should only be sent when the Nextion Serial buffer is empty otherwise, any reply may be from previously stacked up Nextion commands and therefore be erroneous.
+
+The `varName` MUST exist and MUST NOT include any suffixes. These are handled by the function.
+
+```
+float_t f;
+
+f = display.getNumVarFloat("x0");
+if (display.nextionError){
+	Serial.println("Unable to get value of x0");
 }
 ```
 
@@ -496,17 +526,19 @@ If text is sent from the Nextion (following the 0x70 identifier) it will be sent
 
 Gets the text from Nextion Variable.
 
-Waits for up to 100ms for a reply. If no reply returns false.
+Waits for up to 1000ms for a reply. If no reply returns false.
+
+The wait time is controlled by the variable `getStrVarTimeout` which is initially  set to 1000 ms.
 
 In reality this command should only be sent when the Nextion Serial buffer is empty otherwise, any reply may be from previously stacked up Nextion commands and therefore be erroneous.
 
-The varName MUST exist. 
+The varName MUST exist AND NO `.txt` suffix should be sent. It is provided by the function.. 
 
-The result is placed in the string setup with the setTextBuffer function.
+The result is placed in the string setup with the `setTextBuffer` function.
 
-If no screen has been setup it will simply be echoed to the screen (Serial).
+If no string has been setup it will simply be echoed to the screen (Serial).
 
-Returns true if string returned successfully. stringWaiting is also set to true.
+Returns `true` if string returned successfully. `stringWaiting` is also set to true.
 
 ```
 	char buffer[100];
@@ -514,7 +546,7 @@ Returns true if string returned successfully. stringWaiting is also set to true.
 	display.setTextBuffer(buffer, sizeof(buffer));
 	display.printCommandOrErrorTextMessage("C", "Just set text buffer", true);
 	//Puts Nextion manipulated text into "page1.va0.txt" before displaying on screen
-	if (display.getStringVarValue("page1.va0.txt")) {
+	if (display.getStringVarValue("page1.va0")) {
 		Serial.print("page1.va0.txt = ");
 		Serial.println(buffer);
 	}else
@@ -528,13 +560,27 @@ Returns true if string returned successfully. stringWaiting is also set to true.
 
 ###### bool setNumVarValue(const char* varName, int32_t var);
 
-Sets Nextion Variable to var.	
+Sets Nextion Variable to `var`.	
 
 The varName MUST exist.
 
+ NOTE that, if appropriate, the ".val" varName suffix MUST be sent. Program.S variables DO NOT need the ".val" suffix whereas Nextion Display variables do.
 ```
 	display.setNumVarValue("sys0",1000000);
+	display.setNumVarValue("va0.val",12345);
+	display.setNumVarValue("bt0.x",35);  // Puts Dual-state button bt0 at x=35
 ```
+
+
+
+###### bool setStrVarValue(const char* varName, const char* var);
+
+Sets String Variable to var.
+
+NOTE that there is no need to send the variable suffix ".txt". 
+
+`setStrVarValue("va0","this is a string")` will send: `va0.txt="this is a string"FFFFFF` to the Nextion.
+The varName MUST exist.
 
 
 
