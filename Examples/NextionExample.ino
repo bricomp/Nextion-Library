@@ -121,6 +121,8 @@ void SetValveOnOrOff_FromNextion(uint32_t which, bool how) {
 	}
 }
 
+char strBuffer[100];
+
 void setup() {
 	Serial.begin(9600);
 	while (!Serial && millis() < 5000) {}
@@ -158,7 +160,31 @@ void setup() {
 	DisplayInBox(92, 85, "OK, should now have control",0,3000);
 	DisplayInBox(92, 85, "             Just setting up the Teensy RTC                       and Update time on Nextion",0, 3000);
 	Serial.println("Just starting");
-//	Serial.print("Text Value = "); Serial.println(display.getNumVarValue("test"));
+/*
+	display.gotoPage(2);
+	if (display.setStrVarValue("t0", "About to read and then set a Float to x0")) {
+		if (!display.getStringVarValue("t0")) {
+			Serial.println("Error Occurred getting string");
+		};
+		display.setTextBuffer(strBuffer, sizeof(strBuffer));
+		if (display.getStringVarValue("t0")) {
+			Serial.print("strBuffer="); Serial.println(strBuffer);
+		}else {
+			Serial.println("Error Occurred getting string");
+		}
+	}else{
+		Serial.println("Error Occurred setting string");
+		display.printAnyReturnCharacters(1000,555);
+	};
+	Serial.print("Float x0 = "); Serial.println( display.getNumVarFloat("x0"));
+	display.setStrVarValue("t0", "Seting Float x0 to 1234.5678 to 2dp rounded");
+	display.setNumVarFloat("x0", 1234.5678, 2, true);
+	delay(5000);
+	display.setStrVarValue("t0", "Seting Float x0 to 1234.5678 to 2dp NOT rounded");
+	display.setNumVarFloat("x0", 1234.5678, 2, false);
+	delay(10000);
+	display.gotoPage(0);
+*/
 
 #ifdef hardwareRTC
 	Wire.begin();
