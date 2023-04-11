@@ -98,6 +98,7 @@ Revision		    Date		Author			Description
 										- gotoPage corrected.
 										- Tidied up various timeout values.
   1.65	05/06/2022	Robert E Bridges	- Added setNumVarFloat.
+  1.66	11/04/2023	Robert E Bridges	- Minor change to remove compiler warning for Nextion.begin in cpp file.
 */
 
 #include "Arduino.h"
@@ -309,8 +310,8 @@ class Nextion {
 		typedef void (*setNextionBaudCallbackFunc) (uint32_t);				// create function pointer type
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
 
-		const char		revision[5]		 = "1.65";
-		const uint16_t  revisionNum		 = 165;
+		const char		revision[5]		 = "1.66";
+		const uint16_t  revisionNum		 = 166;
 
 		uint32_t		baudRate		 = 9600;
 		const uint32_t	resetNextionBaud = baudRate;

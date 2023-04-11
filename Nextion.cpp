@@ -14,7 +14,7 @@ Nextion::setNextionBaudCallbackFunc SetTeensyBaud;
 bool	 nextionAutoBaud = false;
 Nextion::nextionTurnValveOnOffCallbackFunc turnValveOnOrOff;
 
-void Nextion::begin(uint32_t br, Nextion::setNextionBaudCallbackFunc func = nullptr) {
+void Nextion::begin(uint32_t br, Nextion::setNextionBaudCallbackFunc func ){//} = nullptr) {
 	baudRate = br;
 	if (func) {
 		SetTeensyBaud = func;
@@ -25,7 +25,7 @@ void Nextion::setValveCallBack(Nextion::nextionTurnValveOnOffCallbackFunc func) 
 	turnValveOnOrOff = func;
 };
 
-bool Nextion::getReply(uint32_t timeout = 0) {
+bool Nextion::getReply(uint32_t timeout ){//} = 0) {
 
 	elapsedMillis	timeOut;
 	uint8_t			len = 255;
@@ -871,7 +871,7 @@ int32_t Nextion::getNumVarValue(const char* varName, const char* suffixName) {
 
 float_t Nextion::getNumVarFloat(const char* varName) {
 	int32_t		intValue;
-	float_t		floatValue;
+	float_t		floatValue = 0.0;
 	uint32_t	dpPos;
 	uint32_t    divider = 1;
 	
