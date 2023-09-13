@@ -99,6 +99,8 @@ Revision		    Date		Author			Description
 										- Tidied up various timeout values.
   1.65	05/06/2022	Robert E Bridges	- Added setNumVarFloat.
   1.66	11/04/2023	Robert E Bridges	- Minor change to remove compiler warning for Nextion.begin in cpp file.
+  1.67  13/09/2023  Robert E Bridges    - Minor change onOffFlashingTyp off, on, flashing changed to ledOn, ledOff, ledFlashing.
+										- programmer may have used off and on elsewhere and may conflict.
 */
 
 #include "Arduino.h"
@@ -195,9 +197,9 @@ struct nextionEventType {
 #pragma pack(pop)
 
 enum onOffFlashingType {
-	off = 0,
-	on,			// = 1,
-	flashing	// = 2
+	ledOff = 0,
+	ledOn,			// = 1,
+	ledFlashing	// = 2
 };
 enum topMidBottmType {
 	top = 0,
@@ -310,8 +312,8 @@ class Nextion {
 		typedef void (*setNextionBaudCallbackFunc) (uint32_t);				// create function pointer type
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
 
-		const char		revision[5]		 = "1.66";
-		const uint16_t  revisionNum		 = 166;
+		const char		revision[5]		 = "1.67";
+		const uint16_t  revisionNum		 = 167;
 
 		uint32_t		baudRate		 = 9600;
 		const uint32_t	resetNextionBaud = baudRate;
