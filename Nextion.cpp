@@ -1046,7 +1046,7 @@ bool Nextion::setDaylightSavingOn(bool on) {
 /********************************************************************************************
 *		Set the TextBuffer to be used for Text Returned From Nextion					    *
 *********************************************************************************************/
-void Nextion::setTextBuffer(const char* textMessage, uint8_t textBufSize) {
+void Nextion::setTextBuffer(/*const*/ char* textMessage, uint8_t textBufSize) {
 	txtBufPtr  = textMessage;
 	txtBufSize = textBufSize;
 };

@@ -509,7 +509,9 @@ if (display.nextionError){
 
 
 
-###### void setTextBuffer(const char* textBuffer, uint8_t textBufferSize);
+###### void setTextBuffer( char* textBuffer, uint8_t textBufferSize);  
+
+*changed in ver 1.68*
 
 Set the Text Area to be used for the Return of Text data from Nextion.
 

@@ -99,8 +99,11 @@ Revision		    Date		Author			Description
 										- Tidied up various timeout values.
   1.65	05/06/2022	Robert E Bridges	- Added setNumVarFloat.
   1.66	11/04/2023	Robert E Bridges	- Minor change to remove compiler warning for Nextion.begin in cpp file.
-  1.67  13/09/2023  Robert E Bridges    - Minor change onOffFlashingTyp off, on, flashing changed to ledOn, ledOff, ledFlashing.
+  1.67  13/09/2023  	Robert E Bridges    	- Minor change onOffFlashingTyp off, on, flashing changed to ledOn, ledOff, ledFlashing.
 										- programmer may have used off and on elsewhere and may conflict.
+  1.68  29/09/2023  	Robert E Bridges    	- setTextBuffer	changed from  void setTextBuffer( const char* textBuffer, uint8_t textBufferSize);
+									to    void setTextBuffer(       char* textBuffer, uint8_t textBufferSize);
+
 */
 
 #include "Arduino.h"
@@ -312,8 +315,8 @@ class Nextion {
 		typedef void (*setNextionBaudCallbackFunc) (uint32_t);				// create function pointer type
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
 
-		const char		revision[5]		 = "1.67";
-		const uint16_t  revisionNum		 = 167;
+		const char		revision[5]		 = "1.68";
+		const uint16_t  revisionNum		 = 168;
 
 		uint32_t		baudRate		 = 9600;
 		const uint32_t	resetNextionBaud = baudRate;
@@ -399,7 +402,7 @@ class Nextion {
 *-------------------------------------------------------------------------------------------*
 *       Usage:   setTextBuffer( textBuffer, sizeof( textBuffer ));							*
 *********************************************************************************************/
-		void setTextBuffer(const char* textBuffer, uint8_t textBufferSize);
+		void setTextBuffer(/*const*/ char* textBuffer, uint8_t textBufferSize);
 /**/
 /********************************************************************************************
 *		clearBuffer() - Clears the Teensy (Nextion) serial input.							*
