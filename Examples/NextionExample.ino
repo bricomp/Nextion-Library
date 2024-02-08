@@ -48,6 +48,7 @@ void changeTeensyBaud(uint32_t baud) {
 	NextionDisplay.end();
 	delay(100);
 	NextionDisplay.begin(baud);
+	NextionDisplay.clear();   // Added 07 Feb 2024 - Seems now to be necessary probably following Teensyduino changes.
 }
 
 /*****************************************************************************
@@ -146,7 +147,7 @@ void setup() {
 				while (1){}
 			} else 
 			{
-				Serial.println("Ok Just Reset, Should br Ok now");
+				Serial.println("Ok Just Reset, Should be Ok now");
 			}
 		} else
 		{ 
