@@ -701,7 +701,7 @@ class Nextion {
 void setTime(uint32_t time);
 /**/
 /********************************************************************************************
-*		setDate(uint32_t time) - Sets the time on the Nextion.								*
+*		setDate(uint32_t date) - Sets the date on the Nextion.								*
 *-------------------------------------------------------------------------------------------*
 *		The time is sent as HEX YYMMDD in the variable "page0.SetDate=YYMMDD0xFF0xFF0xFF"	*
 *       When the Nextion sees that StDate is not zero it sets the Nextion date.    			*

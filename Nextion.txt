@@ -80,6 +80,7 @@ Revision		    Date		Author			Description
 					- programmer may have used off and on elsewhere and may conflict.
   1.68  29/09/2023  	Robert E Bridges    	- setTextBuffer	changed from  void setTextBuffer( const char* textBuffer, uint8_t textBufferSize);
 									to    void setTextBuffer(       char* textBuffer, uint8_t textBufferSize);
+  1.69  06/02/2024	Robert E Bridges	- Added SetDate to complement SetTime.
 */
 
 #include "Arduino.h"
@@ -670,6 +671,19 @@ class Nextion {
  	     display.setTime(time)
 *********************************************************************************************/
 		void setTime(uint32_t time);
+/**/
+/********************************************************************************************
+*		setDate(uint32_t date) - Sets the date on the Nextion.								*
+*-------------------------------------------------------------------------------------------*
+*		The time is sent as HEX YYMMDD in the variable "page0.SetDate=YYMMDD0xFF0xFF0xFF"	*
+*       When the Nextion sees that StDate is not zero it sets the Nextion date.    			*
+*		The StDate variable is then set to 0.												*
+*-------------------------------------------------------------------------------------------*
+*		Usage:									        									*
+*				uint32_t date = (Year-2000) * 0x10000 + Month * 0x100 + Day					*
+*				display.setDate(date)														*
+*********************************************************************************************/
+		void setDate(uint32_t date);
 /**/
 /********************************************************************************************
 	setDaylightSavingOn( on) - Turn Nextion daylight saving variable on or off
