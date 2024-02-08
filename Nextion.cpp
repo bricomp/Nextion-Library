@@ -114,7 +114,7 @@ void Nextion::setLedState(topMidBottmType whichLed, uint8_t which/*0..7*/, onOff
 	mask     = 0b011;
 
 	if (which > 0) {
-		which    <<= 1;					// multiply which by 2 since led sate occupies 2 bits
+		which    <<= 1;					// multiply which by 2 since led state occupies 2 bits
 		ledState <<= which;				// move state - put it over the leds that need switching
 		mask     <<= which;				// ditto mask - as above
 	}
@@ -423,7 +423,7 @@ bool Nextion::reset(uint32_t br){
 	* Nextion Reset returns 0x00 as the first character. 
 	* That is a Nextion error code decoded by getReply()
 	*/
-	_s->readBytes((char*)&nextionEvent, len);
+	_s->readBytes((char*)&nextionEvent, len);  // *** CHANGED FROM char
 	if ( (len != resetReplyCharCount) || !( (nextionEvent.id == 0) && (nextionEvent.resetReply.startup4Bytes == 0x0FFFF0000) && (nextionEvent.resetReply.startupByte == 0x0FF) && (nextionEvent.resetReply.readyReply == 0x0FFFFFF88 ))) {
 		Serial.print("len= "); Serial.println(len);
 
@@ -778,6 +778,12 @@ void Nextion::setTime(uint32_t time) {
 #endif
 }
 
+void Nextion::setDate(uint32_t date) {
+	_s->print("SetDate="); _s->print(date); _s->print("\xFF\xFF\xFF");
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
+}
 void Nextion::setNextionBaudRate(uint32_t br) {
 	recoveryBaudRate = baudRate;
 	baudRate		 = br;

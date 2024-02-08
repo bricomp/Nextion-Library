@@ -99,10 +99,11 @@ Revision		    Date		Author			Description
 										- Tidied up various timeout values.
   1.65	05/06/2022	Robert E Bridges	- Added setNumVarFloat.
   1.66	11/04/2023	Robert E Bridges	- Minor change to remove compiler warning for Nextion.begin in cpp file.
-  1.67  13/09/2023  	Robert E Bridges    	- Minor change onOffFlashingTyp off, on, flashing changed to ledOn, ledOff, ledFlashing.
+  1.67  13/09/2023  Robert E Bridges    - Minor change onOffFlashingTyp off, on, flashing changed to ledOn, ledOff, ledFlashing.
 										- programmer may have used off and on elsewhere and may conflict.
-  1.68  29/09/2023  	Robert E Bridges    	- setTextBuffer	changed from  void setTextBuffer( const char* textBuffer, uint8_t textBufferSize);
-									to    void setTextBuffer(       char* textBuffer, uint8_t textBufferSize);
+  1.68  29/09/2023  Robert E Bridges    - setTextBuffer	changed from  void setTextBuffer( const char* textBuffer, uint8_t textBufferSize);
+																to    void setTextBuffer(       char* textBuffer, uint8_t textBufferSize);
+  1.69  06/02/2024	Robert E Bridges	- Added SetDate to complement SetTime.
 
 */
 
@@ -184,7 +185,7 @@ struct resetReplyType {         // first 00 in nextionEvent char Id
 };								//       sent during "reset" (Have Seen It in error conditions)
 
 struct nextionEventType {
-	char id;
+	uint8_t id;  // *** CHANGED FROM char
 	union {
 		rep3Type		reply3;
 		rep4Type		reply4;
@@ -315,8 +316,8 @@ class Nextion {
 		typedef void (*setNextionBaudCallbackFunc) (uint32_t);				// create function pointer type
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
 
-		const char		revision[5]		 = "1.68";
-		const uint16_t  revisionNum		 = 168;
+		const char		revision[5]		 = "1.69";
+		const uint16_t  revisionNum		 = 169;
 
 		uint32_t		baudRate		 = 9600;
 		const uint32_t	resetNextionBaud = baudRate;
@@ -697,7 +698,20 @@ class Nextion {
 *				uint32_t time = Hours * 0x10000 + Minutes * 0x100 + Seconds					*
 *				display.setTime(time)														*
 *********************************************************************************************/
-		void setTime(uint32_t time);
+void setTime(uint32_t time);
+/**/
+/********************************************************************************************
+*		setDate(uint32_t time) - Sets the time on the Nextion.								*
+*-------------------------------------------------------------------------------------------*
+*		The time is sent as HEX YYMMDD in the variable "page0.SetDate=YYMMDD0xFF0xFF0xFF"	*
+*       When the Nextion sees that StDate is not zero it sets the Nextion date.    			*
+*		The StDate variable is then set to 0.												*
+*-------------------------------------------------------------------------------------------*
+*		Usage:									        									*
+*				uint32_t date = (Year-2000) * 0x10000 + Month * 0x100 + Day					*
+*				display.setDate(date)														*
+*********************************************************************************************/
+		void setDate(uint32_t date);
 /**/
 /********************************************************************************************
 *		setDaylightSavingOn( on) - Turn Nextion daylight saving variable on or off			*
