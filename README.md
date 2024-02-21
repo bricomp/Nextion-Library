@@ -1,5 +1,11 @@
 # Nextion-Library
 
+**NOTE that the version has been raised to vs 1.71. This includes an important fix which overcomes the library being overwhelmed  when data arrives too fast from the Nextion, as is the case when two variables data is sent in close succession ands at high baud rates. The fault resulted in the second variables data being lost and an error occurring.**
+
+Other enhancements have been made to the library, described in the Nextion.h file, and in README-Addendum.md
+
+
+
 #### PLEASE ALSO READ THE Nextion.h DOCUMENT IN Resources
 
 In the Examples folder is the HMI file NextionExample.HMI and the INO file NextionExample.ino which were developed to demonstrate this library.
@@ -77,7 +83,6 @@ A suitable function is shown below:-
 			NextionDisplay.end();
 			delay(100);
 			NextionDisplay.begin(baud);
-			NextionDisplay.clear();	// added at 1.69 - found to be necessary for leter versions of Teensyduino
 		}
 
 ​		...now we must set the baud rate on the Teensy port:-
@@ -792,61 +797,6 @@ The attributes for the Nextion components are shown below.
 All that is needed now is to align the hour, timeSep and minute on the screen.
 
 ![Attributes](./Resources-Graphic/Attributes.jpg)
-
-
-
-###### void setDate(uint32_t date);   Added at vs 1.69
-
-Sets the date on the Nextion.
-
-The time is sent as HEX YYMMDD in the variable "SetDate=YYMMDD0xFF0xFF0xFF"
-
-When the Nextion sees that SetDate is not zero it sets the Nextion date.
-
-The SetDate variable is then set to 0.
-
-```
-	if (rtc.updateDate()) //Updates the date/time variables from RTC
-	{
-		uint32_t date = (getYear()-2000) * 0x10000 + getMonth() * 0x100 + getDate();
-		display.setDate(date);
-	}
-```
-
-
-
-The date/time on the Nextion is held in variables rtc0 to rtc6.
-
-rtc0 is year 2000 to 2099, rtc1 is month 1 to 12, rtc2 is day 1 to 31.
-
-The following code is setup in a Nextion timer which runs every 600ms.
-
-The 600ms is peculiar to my use and suits me.
-
-```
-//=================================
-//Set RTC date if SetDateVar >0
-//=================================
-//rtc0=year 2000 to 2099
-//rtc1=month 1 to 12
-//rtc2=day 1 to 31
-if(SetDate!=0)
-{
-  xx=SetDate
-  xx=xx>>16
-  rtc0=2000+xx
-  //  y.val=xx.val
-  xx=SetDate
-  xx=xx&0xFF00
-  xx=xx>>8
-  rtc1=xx
-  //  m.val=xx.val
-  xx=SetDate&0xFF
-  rtc2=xx
-  //  d.val=xx.val
-  SetDate=0
-}
-```
 
 
 
