@@ -2,6 +2,8 @@
 #include <Nextion.h>
 #include <Stream.h>
 
+#define incDelayz
+
 #define bkcmd1or3allowedz
 
 #define debugvz
@@ -37,7 +39,11 @@ bool Nextion::getReply(uint32_t timeout ){//} = 0) {
 	uint8_t			len = 255;
 	uint8_t			n;
 
-	while ((timeOut < timeout) && !_s->available()) {}
+	while ((timeOut < timeout) && !_s->available()) {
+#ifdef incDelay
+		delay(1);
+#endif
+	}
 	comdExecOk = false;
 
 	if (_s->available()) {
@@ -535,7 +541,11 @@ bool Nextion::GetNextionString() {
 	uint8_t		  fFCount = 0;
 	char		  c;
 
-	while (!_s->available() && t < getStrVarTimeout) {}
+	while (!_s->available() && t < getStrVarTimeout) {
+#ifdef incDelay
+		delay(1);
+#endif
+	}
 	if (_s->available()) {
 		stringWaiting = false;
 		txtBufCharPtr = 0;
@@ -972,7 +982,11 @@ bool Nextion::getEEPromData(uint32_t start, uint8_t len) {
 	}
 	_s->print("rept "); _s->print(start); _s->print(","); _s->print(len); _s->print("\xFF\xFF\xFF");
 
-	while (!_s->available() && t < getEPromDataTimeout) {}
+	while (!_s->available() && t < getEPromDataTimeout) {
+#ifdef incDelay
+		delay(1);
+#endif
+	}
 	if (_s->available()) {
 		eepromBytesRead = 0;
 
@@ -1166,6 +1180,9 @@ bool Nextion::askSerialBufferClear(uint32_t timeout) {
 
 	askSerialBufferClear();
 	while (!serialBufferClear && n <= timeout) {
+#ifdef incDelay
+		delay(1);
+#endif
 		isSerialBufferClear();
 	}
 	return serialBufferClear;
