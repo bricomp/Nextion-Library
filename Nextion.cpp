@@ -10,9 +10,10 @@ Nextion::Nextion(Stream* s)
 	_s = s;
 }
 
-Nextion::setNextionBaudCallbackFunc SetTeensyBaud;
+Nextion::setNextionBaudCallbackFunc			SetTeensyBaud;
 bool	 nextionAutoBaud = false;
-Nextion::nextionTurnValveOnOffCallbackFunc turnValveOnOrOff;
+Nextion::nextionTurnValveOnOffCallbackFunc	turnValveOnOrOff;
+Nextion::setMcuDateTimeCallbackFunc			setMcuDateTime;
 
 void Nextion::begin(uint32_t br, Nextion::setNextionBaudCallbackFunc func ){//} = nullptr) {
 	baudRate = br;
@@ -25,6 +26,11 @@ void Nextion::setValveCallBack(Nextion::nextionTurnValveOnOffCallbackFunc func) 
 	turnValveOnOrOff = func;
 };
 
+void Nextion::setMcuDateTimeCallback(Nextion::setMcuDateTimeCallbackFunc func) {
+	setMcuDateTime = func;
+	autoUpdateMcuDateTime = true;
+};
+#define debugGtReplyz
 bool Nextion::getReply(uint32_t timeout ){//} = 0) {
 
 	elapsedMillis	timeOut;
@@ -35,17 +41,20 @@ bool Nextion::getReply(uint32_t timeout ){//} = 0) {
 	comdExecOk = false;
 
 	if (_s->available()) {
+
 		comdExecOk		= false;
 		nextionError	= false;
 		nextionEvent.id = _s->read();
-
+#ifdef debugGtReply
+		Serial.print(nextionEvent.id, HEX); Serial.print(" ");
+#endif
 		switch (nextionEvent.id) {
 			
 			case invalidInstruction ... invalidFileOperation:		// 0x00 ... 0x06: //
 			case invalidCrc:										// 0x09
 			case invalidBaudRateSetting ... invalidWaveformIdChan:	// 0x11..0x12
 			case invalidVarNameAttrib ... invalidEscapeChar:		// 0x1A..0x20
-			case variableNameToLong:								// 0x23
+			case variableNameTooLong:								// 0x23
 			case serialBufferOverflow:								// 0x24
 				len = 3;
 				break;
@@ -81,7 +90,7 @@ bool Nextion::getReply(uint32_t timeout ){//} = 0) {
 			while (n < len && timeOut < 10000) {
 				n = _s->available();
 			};
-			if (n == len) {
+			if (n >= len) {		//	vs 1.71 change:errors if data comming too fast. Changed from  if (n == len) {
 				_s->readBytes((char*)&nextionEvent.reply8, len);
 			}
 			else
@@ -609,7 +618,7 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 
 		case invalidEscapeChar:							// Returned when an unsupported escape character is used
 
-		case variableNameToLong:						// Returned when variable name is too long.Max length is 29 characters: 14 for page + “.” + 14 for component.
+		case variableNameTooLong:						// Returned when variable name is too long.Max length is 29 characters: 14 for page + “.” + 14 for component.
 
 		case serialBufferOverflow:						// Returned when a Serial Buffer overflow occurs	Buffer will continue to receive the current instruction, all previous instructions are lost.
 			if (nextionEvent.id != instructionSuccess) {
@@ -663,6 +672,26 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 					how = ((zz % 0x100) == 1);
 					turnValveOnOrOff(valve, how);
 					needsResponse = false;
+					break;
+				case 0x0701: // Update to Hot Water Data;
+					eepromDataChanged = true;
+					needsResponse	  = false;
+					break;
+				case 0x0801: // Nextion Date/Time updated
+					nextionDateTimeUpdt = true;
+#define debugNexDTz
+#ifdef debugNexDT
+					Serial.println("New Nextion Date/Time Available");
+					Serial.print("autoUpdateDateTime: "); Serial.println(autoUpdateDateTime);
+#endif
+					if (getReply(getNumVarTimeout)) {
+						packedDateTime = nextionEvent.reply7.number32bit;
+#ifdef debugNexDT
+						Serial.print("packedDateTime: "); Serial.println(packedDateTime, HEX);
+#endif
+						if (autoUpdateMcuDateTime) setMcuDateTime();
+						needsResponse  = false;
+					}
 					break;
 				case 0xFA00: //Nextion Set baudrate back to 9600
 					SetTeensyBaud(9600);
@@ -784,6 +813,23 @@ void Nextion::setDate(uint32_t date) {
 	checkedComdCompleteOk = !checkComdComplete;
 #endif
 }
+
+#define debugt4bz
+bool Nextion::getDateTime() {
+	if (getPage() == sndDateTimeHotSPage) {
+		_s->print("SndDateTime,0");
+		_s->print("\xFF\xFF\xFF");
+		if (getReply(getNumVarTimeout)) {
+			packedDateTime = nextionEvent.reply7.number32bit;
+			return true;
+		}
+	}
+	return false;
+#ifdef bkcmd1or3allowed
+	checkedComdCompleteOk = !checkComdComplete;
+#endif
+}
+
 void Nextion::setNextionBaudRate(uint32_t br) {
 	recoveryBaudRate = baudRate;
 	baudRate		 = br;
@@ -910,6 +956,54 @@ bool Nextion::getStringVarValue(const char* varName) {
 	{
 		return false;
 	}
+}
+
+#define debugt4az
+bool Nextion::getEEPromData(uint32_t start, uint8_t len) {
+	elapsedMillis t;
+	uint8_t		  epromBufBytePtr = 0;
+	char		  c;
+
+#ifdef debugt4a
+	Serial.print("rept "); Serialk.print(start); Serial.print(","); Serial.print(len); Serial.println("\xFF\xFF\xFF");
+#endif
+	if (epromBufSize == 0 or epromBufPtr == nullptr) {
+		return 0;
+	}
+	_s->print("rept "); _s->print(start); _s->print(","); _s->print(len); _s->print("\xFF\xFF\xFF");
+
+	while (!_s->available() && t < getEPromDataTimeout) {}
+	if (_s->available()) {
+		eepromBytesRead = 0;
+
+		while (_s->available() && (eepromBytesRead < len)) {
+#ifdef debugGNS
+			Serial.print(txtBufCharPtr); Serial.print(" - ");
+#endif
+			c = _s->read();
+			if (epromBufBytePtr >= epromBufSize) {
+				Serial.print(c, HEX);
+			}
+			else
+			{
+				epromBufPtr[epromBufBytePtr] = c;
+				epromBufBytePtr++;
+			}
+			eepromBytesRead++;
+			t = 0;
+			while (!_s->available() && t < 10) {}  // 10 for potential low baud rate
+
+		}
+		if ((epromBufBytePtr >= epromBufSize) or (epromBufBytePtr > len)){
+			Serial.println();
+		}
+	}
+	if (eepromBytesRead == len) eepromDataChanged = false;
+	return  (eepromBytesRead == len);
+}
+
+int32_t Nextion::getPage() {
+	return getNumVarValue("dp");
 }
 
 #define debugt3z
@@ -1055,6 +1149,11 @@ bool Nextion::setDaylightSavingOn(bool on) {
 void Nextion::setTextBuffer(/*const*/ char* textMessage, uint8_t textBufSize) {
 	txtBufPtr  = textMessage;
 	txtBufSize = textBufSize;
+};
+
+void Nextion::setEEPromDataBuffer(/*const*/ char* eepromDataBuffer, uint8_t eepromBufferSize) {
+	epromBufPtr  = eepromDataBuffer;
+	epromBufSize = eepromBufferSize;
 };
 
 void Nextion::askSerialBufferClear() {

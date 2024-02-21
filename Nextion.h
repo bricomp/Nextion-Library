@@ -24,8 +24,8 @@
 /*
   Code by Robert E Bridges bob@bricomp-uk.com
   This library is intended to be used to create your own Nextion Library. Most of it is done for you. 
-  The function that you will mostly alter is the "respondToReply()" function.
-  I developed this library to control the valves in my Home Heating system, so there are functions
+  The fn (fn) that you will mostly alter is the "respondToReply()" fn.
+  I developed this library to control the valves in my Home Heating system, so there are fns
   that pertain to the opening/closing of valves. This can be used as an example as to how to use/develop
   the Library.
   I mostly communicate with the nextion through the passing of data into/from numeric variables.
@@ -104,7 +104,18 @@ Revision		    Date		Author			Description
   1.68  29/09/2023  Robert E Bridges    - setTextBuffer	changed from  void setTextBuffer( const char* textBuffer, uint8_t textBufferSize);
 																to    void setTextBuffer(       char* textBuffer, uint8_t textBufferSize);
   1.69  06/02/2024	Robert E Bridges	- Added SetDate to complement SetTime.
-
+  1.70	18/02/2024	Robert E Bridges	- Added variables and functions associated with getting date/time from Nextion:
+										-	added getDateTime() to get date/time from Nextion	- works with the NEW example HMI.
+										-   added setMcuDateTimeCallback,						- works with the NEW example HMI.
+										-	added variables nextionDateTimeUpdt, packedDateTime	- works with the NEW example HMI.
+										- Added variable and function to get EEprom data from Nextion:
+										-   added fns setEEPromDataBuffer and getEEPromData		- works with the NEW example HMI.
+										-	added eepromDataChanged								- works with the NEW example HMI.
+(***********************************************************************************************************************************)
+(*										Below at vs 1.71 is a MAJOR Potential Error Fix											   *)
+(***********************************************************************************************************************************)
+  1.71  19/02/2024  Robert E Bridges	- GetReply() changed. An error could occur if the Nextion data was coming too fast.
+										- Added getPage()										- works with the NEW example HMI.
 */
 
 #include "Arduino.h"
@@ -115,8 +126,8 @@ Revision		    Date		Author			Description
 *		These are all the data types used to communicate with the Nextion. More correctly		*
 *		they are the data types for data returned FROM the Nextion display.						*
 *		Some data returns only need 4 bytes, the Id and the Nextion terminating string,		  	*
-*		\0xFF\0xFF\0xFF, whilst others require much more right up to the reset function			*
-*		which returns two data sets in one go i.e. startUp message and ready message			*
+*		\0xFF\0xFF\0xFF, whilst others require much more right up to the reset fn which			*
+*		returns two data sets in one go i.e. startUp message and ready message					*
 *		|----- Start up message ----| |- Ready Message -|										*
 *		0x00 0x00 0x00 0xFF 0xFF 0xFF  0x88 0xFF 0xFF 0xFF										*
 *																								*
@@ -288,6 +299,9 @@ const uint8_t ioOperationFailed			= 0x1F;	// bkcmd 2,3	0x1F 0xFF 0xFF 0xFF						
 const uint8_t invalidEscapeChar			= 0x20;	// bkcmd 2,3	0x20 0xFF 0xFF 0xFF							Returned when an unsupported escape uint8_tacter is used
 const uint8_t variableNameToLong		= 0x23;	// bkcmd 2,3	0x23 0xFF 0xFF 0xFF							Returned when variable name is too long.Max length is 29 characters: 
 												//															14 for page + “.” + 14 for component.
+												// // DON'T USE ANY MORE - USE variableNameTooLong shown below
+const uint8_t variableNameTooLong		= 0x23;	// bkcmd 2,3	0x23 0xFF 0xFF 0xFF							Returned when variable name is too long.Max length is 29 characters: 
+												//															14 for page + “.” + 14 for component.
 const uint8_t serialBufferOverflow		= 0x24;	//	always		0x24 0xFF 0xFF 0xFF							Returned when a Serial Buffer overflow occurs	
 												//															Buffer will continue to receive the current instruction, all previous instructions are lost.
 /*
@@ -315,20 +329,26 @@ class Nextion {
 
 		typedef void (*setNextionBaudCallbackFunc) (uint32_t);				// create function pointer type
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
+		typedef void (*setMcuDateTimeCallbackFunc) ();						// create function pointer type
 
-		const char		revision[5]		 = "1.69";
-		const uint16_t  revisionNum		 = 169;
+		const char		revision[5]			= "1.71";
+		const uint16_t  revisionNum			= 171;
 
-		uint32_t		baudRate		 = 9600;
-		const uint32_t	resetNextionBaud = baudRate;
-		uint32_t		recoveryBaudRate = baudRate;		// used for recovery when changing baud rate does not work
-		bool			nextionError	 = false;
-		bool			comdExecOk		 = false;			// only used for bkcmd = 1 or 3
-		bool			stringWaiting	 = false;
-		uint8_t			errorCode        = instructionSuccess;
-		bkcmdStateType  bkcmd			 = onFailure;
-		uint32_t		getNumVarTimeout = 1000;
-		uint32_t		getStrVarTimeout = 1000;
+		uint32_t		baudRate			= 9600;
+		const uint32_t	resetNextionBaud	= baudRate;
+		uint32_t		recoveryBaudRate	= baudRate;		// used for recovery when changing baud rate does not work
+		bool			nextionError		= false;
+		bool			comdExecOk			= false;			// only used for bkcmd = 1 or 3
+		bool			stringWaiting		= false;
+		uint8_t			errorCode			= instructionSuccess;
+		bkcmdStateType  bkcmd				= onFailure;
+		uint32_t		getNumVarTimeout	= 1000;
+		uint32_t		getStrVarTimeout	= 1000;
+		uint32_t		getEPromDataTimeout = 1000;
+		bool			eepromDataChanged   = true;
+		bool			nextionDateTimeUpdt = false;
+		uint32_t		packedDateTime		= 0;
+		int32_t			sndDateTimeHotSPage	= 0;
 
 		nextionEventType nextionEvent;
 
@@ -336,15 +356,59 @@ class Nextion {
 		Nextion(Stream* s);
 /**/
 /********************************************************************************************
+*																							*
+*						Description of Nextion Public Variables                             *
+*																							*
+*********************************************************************************************
+*																							*
+*		baudRate			= 9600;		The baud rate used for Nextion Comms.				*
+*		resetNextionBaud	= baudRate; The baud rate used after a reset. Needs to match	*
+*										the value used in Program.s if changed from the		*
+*										default 9600.										*
+* 		recoveryBaudRate	= baudRate;	Used for recovery when changing baud rate doesn't	*
+*																					  work. *
+*		nextionError		= false;	Returns true if a Nextion error has occured			*
+*		comdExecOk			= false;			// only used for bkcmd = 1 or 3				*
+*		stringWaiting		= false;	Returns true if a string has been collected from	*
+*										Nextion.											*
+*		errorCode			= instructionSuccess; Error code returned if nextionError is	*
+*																					  true. *
+*		bkcmd				= onFailure; NOT TESTED FOR CHANGE FROM THIS DEFAULT SETTING.	*						
+*		getNumVarTimeout	= 1000;		Timeout (mS) for getting numeric value from Nextion	*
+*		getStrVarTimeout	= 1000;		Timeout (mS) for getting string result from Nextion	*
+*		getEPromDataTimeout = 1000;		Timeout (mS) for getting Eeprom data from Nextion.	*
+*		eepromDataChanged   = true;		Returns true if Eeprom data has changed and should	*
+*										be read from Nextion using getEEPromData.			*
+*										Using this sets eepromDataChanged to false.			*
+*		packedDateTime		= 0;		The variable used to hold the packed date/time		*
+*										returned from the Nextion.							*
+*		nextionDateTimeUpdt = false;	The date/time has been changed on the Nextion.		*
+*										and automatically collected into packedDateTime.	*
+*										If setMcuDateTimeCallback() has been used the		*
+*										CallBack fn will be used to set the mcuDate/Time.	*
+*										If false getDateTime() will need to be used to get	*
+*										the date/time.										*
+*										This will set nextionDateTimeUpdt to false.			*
+*		sndDateTimeHotSPage = 0			The page nuumber holding the sndDateTime Hotspot.	*
+*																							*
+*********************************************************************************************/
+/**/
+/********************************************************************************************
+*																							*
+*							Description of Nextion functions		                        *
+*																							*
+*********************************************************************************************/
+/**/
+/********************************************************************************************
 *		begin(uint32_t br, setNextionBaudCallbackFunc func = nullptr) - passes the Nextion  *
 *		baud rate to the library. This is put into the variable baudRate. No changes to the *
-*		baudRate are made by this Function. Also, if passed, sets the call back function	*
-*		so that this library can have control over the Teensy baudrate.						*
+*		baudRate are made by this fn. Also, if passed, sets the call back fn so that this	*
+*		library can have control over the Teensy baudrate.									*
 *		Turns on automatic control of Teensy baudrate if passed.							*
 *-------------------------------------------------------------------------------------------*
 *       Usage:																				*
 *			begin( baudRate ) - autoSetting of Teensy baud rate set off.					*
-*			begin( baudRate, setNextionBaud ) - passes the baud rate and function to change *
+*			begin( baudRate, setNextionBaud ) - passes the baud rate and fn to change the	*
 *																			Teensy baudRate.*
 *********************************************************************************************/
 		void begin(uint32_t br, setNextionBaudCallbackFunc func = nullptr);
@@ -396,14 +460,22 @@ class Nextion {
 /********************************************************************************************
 *		Set the Text Area to be used for the Return of Text data from Nextion               *
 *       If text is sent from the Nextion (following the 0x70 identifier) it will be			*
-*		sent to SerialUsb if this function has not been used to specify a variable			*
-*       to hold the text data. The parameter must be the size of the textMessage			*
-*	    variable. If more text is returned than there is space for in textMessage			*
-*		it will be sent to the SerialUsb.													*
+*		sent to SerialUsb if this fn has not been used to specify a variable tgo hold the	*
+*       text data. The parameter must be the size of the textMessage variable				*
+*	    If more text is returned than there is space for in textMessage	it will be sent to	*
+*		the SerialUsb.																		*
 *-------------------------------------------------------------------------------------------*
 *       Usage:   setTextBuffer( textBuffer, sizeof( textBuffer ));							*
 *********************************************************************************************/
 		void setTextBuffer(/*const*/ char* textBuffer, uint8_t textBufferSize);
+/**/
+/********************************************************************************************
+*		Set the EEProm Data Area to be used for the Return of EEProm data from Nextion by   *
+*		the fn bool getEEPromData(uint32_t start, uint32_t len)								*
+*-------------------------------------------------------------------------------------------*
+*       Usage:   setEEPromDataBuffer( eepromDataBuffer, sizeof(eepromDataBuffer));			*
+*********************************************************************************************/
+		void setEEPromDataBuffer(/*const*/ char* eepromDataBuffer, uint8_t eepromBufferSize);
 /**/
 /********************************************************************************************
 *		clearBuffer() - Clears the Teensy (Nextion) serial input.							*
@@ -427,15 +499,15 @@ class Nextion {
 *		Sends a reset command to the Nextion. Sets the Teensy baud rate to 9600 if that		*
 *       baud rate NOT already in use. ( upon reset the Nextion defaults to this baud rate ) *
 *		and waits for a valid reply. The Teensy baud rate is set using the callBack			*
-*		function registered using the display.begin function.								*
+*		fn registered using the display.begin fn.											*
 *		When a valid reply has been seen the Nextion AND Teensy have the buadRate changed	*
-*		to the baud rate passed in the function call.										*
-*		The function returns true if valid comms with the Nextion can be established.		*
+*		to the baud rate passed in the fn call.												*
+*		The fn returns true if valid comms with the Nextion can be established.				*
 *		Sets bkcmd to onFailure (Default)													*
 *-------------------------------------------------------------------------------------------*
 *       Usage:																				*
 *		   reset() - If no baud rate is passed then the baudRate defaults to the reset 9600 *
-*		   reset(1) - Sets the Baud Rate to that in use at the entry to the Reset function. *
+*		   reset(1) - Sets the Baud Rate to that in use at the entry to the Reset fn.		*
 *		   reset(115200) - Will do a reset and set the baudRate to 115200.					*
 *********************************************************************************************/
 		bool reset(uint32_t br = 0);
@@ -444,7 +516,7 @@ class Nextion {
 *		recoverNextionComms() - attempts to recover Nextion Comms once they have been lost  *
 *-------------------------------------------------------------------------------------------*
 *		First sets the Teensy baud rate to the recoverBaudRate (see setNextionBaudRate      *
-*       below). Uses the commsOK function to determine that comms have been re-established. *
+*       below). Uses the commsOK fn to determine that comms have been re-established.		*
 *		If that does not work then all the baud rates that the Nextion might use are cycled *
 *		through until a valid baud rate can be found.        								*
 *		Returns the value of the baud rate found.                                           *
@@ -473,7 +545,7 @@ class Nextion {
 *		respondToReply() - returns true if something needs responding to.					*
 *-------------------------------------------------------------------------------------------*
 *		This is where you need to put your code. Use getReply() to get any info from the    *
-*       Nextion (see above) and this function to decode the reply and respond to it.        *
+*       Nextion (see above) and this fn to decode the reply and respond to it.				*
 *		It returns true if further response is needed.										*
 *-------------------------------------------------------------------------------------------*
 *		I like to have requests from the Nextion Display embedded into numbers.	Within this *
@@ -484,14 +556,14 @@ class Nextion {
 		bool respondToReply();
 /**/
 /********************************************************************************************
-*		printAnyReturnCharacters(uint32_t nextionTime, uint32_t id).							*
-*		This function is intended to be used in debugging your code. It prints out to the   *
+*		printAnyReturnCharacters(uint32_t nextionTime, uint32_t id).						*
+*		This fn is intended to be used in debugging your code. It prints out to the			*
 *		SerialUsb the value "nextionTime" and "Id", both values that might be useful in		*
 *       tracking down where your error occurred, followed by any values that are in the     *
 *		Serial input stream from the Nextion.                                    			*
 *		It might be that you have used "respondToReply", with your code in it, but still    *
-*		there is something being returned that needs to be responded to. Use this function  *
-*		to see what unexpected data is being sent from the Nextion Display.					*
+*		there is something being returned that needs to be responded to. Use this fn to see *
+*		what unexpected data is being sent from the Nextion Display.						*
 *		ALL data is output in HEX.															*
 *********************************************************************************************/
 		void printAnyReturnCharacters(uint32_t nextionTime, uint32_t id);
@@ -500,9 +572,9 @@ class Nextion {
 *		setNextionBaudRate(uint32_t br) - Sets the baud rate on Nextion and Teensy.			*
 *-------------------------------------------------------------------------------------------*
 *		This routine saves the current baud rate in a variable recoveryBaudRate so that    	*
-*       recoveryBaudRate can be tried first by the recoverNextionComms() function,			*
-*		thus saving some time in the recovery.												*
-*		In order for this function to work correctly it requires that the					*
+*       recoveryBaudRate can be tried first by the recoverNextionComms() fn, thus saving	*
+*		some time in the recovery.															*
+*		In order for this fn to work correctly it requires that the							*
 *		setNextionBaudCallbackFunc was passed to the Library with the Nextion.display.begin *
 *		function. If not it will be the responsibility of the calling program to set the	*
 *		Teensy BaudRate accordingly.														*
@@ -510,9 +582,14 @@ class Nextion {
 		void setNextionBaudRate(uint32_t br);
 /**/
 /********************************************************************************************
-*		gotoPage(uint32_t which); - Sets which as active displayed page.					*
+*		gotoPage(uint32_t which); - Sets which is active displayed page.					*
 *********************************************************************************************/
 		void gotoPage(uint32_t which);
+/**/
+/********************************************************************************************
+*		getPage(); - Returns the number of the active displayed page.						*
+*********************************************************************************************/
+		int32_t getPage();
 /**/
 /********************************************************************************************
 *		setBackLight(uint32_t backLight) - Sets the display BackLight(0..100).				*
@@ -540,12 +617,12 @@ class Nextion {
 *-------------------------------------------------------------------------------------------*
 *		In the second case returns the value of a variable suffix as in:					*
 *       getNumVarValue( "x0","ws1") to get the number of dp for a Nextion float variable.	*
-*		NOTE that the "." in "x0.ws1" is provided by the function.							*
+*		NOTE that the "." in "x0.ws1" is provided by the fn.								*
 *-------------------------------------------------------------------------------------------*
 *       NOTE that, if appropriate, the ".val" varName suffix MUST be sent. Program.S		*
 *       variables DO NOT need the ".val" suffix whereas Nextion Display variables do.		*
 *																							*
-*       For example to get a sys value just use getNumVarValue("sys"); but for a Display	*
+*       For example to get a sys value just use getNumVarValue("sys0"); but for a Display	*
 *       variable va2, use getNumVarValue("va2.val"); OR getNumVarValue("va2","val");		*
 *-------------------------------------------------------------------------------------------*
 *		The varName MUST exist.                           									*
@@ -581,7 +658,7 @@ class Nextion {
 *		and therefore be erroneous.															*
 *		The varName MUST exist.                           									*
 *-------------------------------------------------------------------------------------------*
-*		The result is placed in the string setup with the setTextBuffer function.			*
+*		The result is placed in the string setup with the setTextBuffer fn.					*
 *		If no string has been setup it will simply be echoed to the screen (Serial).		*
 *		Returns true if string returned successfully. stringWaiting is also set to true.	*
 *-------------------------------------------------------------------------------------------*
@@ -591,6 +668,27 @@ class Nextion {
 *********************************************************************************************/
 		bool getStringVarValue(const char* varName);
 /**/
+/********************************************************************************************
+*		bool getEEPromData(uint32_t start, uint32_t len) - Gets the EEProm data from		*
+*																		start for len bytes.*
+*-------------------------------------------------------------------------------------------*
+*       Waits for up to 1000ms for a reply. If no reply returns false.						*
+*		The wait time is controlled by the variable getEPromDataTimeout which is initially	*
+*		set to 1000 ms.																		*
+*-------------------------------------------------------------------------------------------*
+*       In reality this command should only be sent when the Nextion Serial buffer is		*
+*       empty, otherwise any reply may be from previously stacked up Nextion commands 		*
+*		and therefore be erroneous.															*
+*-------------------------------------------------------------------------------------------*
+*		The result is placed in the EEPromDataBuffer setup with the setEEPromDataBuffer		*
+* 		fn returned true if len bytes collected. The number of bytes collected is placed in *
+*		the global variable eepromBytesRead.												*
+*		A valid getEpromData also sets eepromDataChanged to false.							*
+*		Initially it is set to true to force initial collection of Nextion eeprom data.		*
+*		If no EEPromDataBuffer has been setup it will simply return false.					*
+*********************************************************************************************/
+		bool getEEPromData(uint32_t start, uint8_t len);
+		/**/
 /********************************************************************************************
 *		setNumVarValue(const char* varName, int32_t var ) - Sets Nextion Variable to var.	*
 *-------------------------------------------------------------------------------------------*
@@ -650,8 +748,8 @@ class Nextion {
 *-------------------------------------------------------------------------------------------*
 *		NOTE that if other commands are stacked up which will give a reply from Nextion,	*
 *		then they will be handled by the calls to getReply and respondToReply used by		*
-*		this function. They may return a reply, but if it is NOT a Numeric reply with		*
-*		0xFDFD they will NOT return true.													*
+*		this fn. They may return a reply, but if it is NOT a Numeric reply with	0xFDFD		*
+*		they will NOT return true.															*
 *********************************************************************************************/
 		bool isSerialBufferClear();
 /**/
@@ -665,9 +763,9 @@ class Nextion {
 /**/
 /********************************************************************************************
 *		turnNextionButton(uint8_t which, bool on)											*
-*		I have Nextion buttons named Sw0..Sw6. I use this function to set the relevant      *
+*		I have Nextion buttons named Sw0..Sw6. I use this fn to set the relevant			*
 *		button on (1) or off (0)															*
-*       I have ghosted this function with the phrase "turnNextionValve" since some of the   *
+*       I have ghosted this fn with the phrase "turnNextionValve" since some of the			*
 *       buttons are controlling valves and it makes more sense in the code to refer to		*
 *       them as valves.																		*
 *********************************************************************************************/
@@ -682,7 +780,7 @@ class Nextion {
 *       When the Nextion receives this command (via a numeric value in a Number Variable)   *
 *       it turns the display for the valve open "on" and when the timeout occurs it sends	*
 *       a command to the Teensy to turn off the hotwater. This is done via the callback		*
-*		setup via the setValveCallBack(nextionTurnValveOnOffCallbackFunc func)function.		*
+*		setup via the setValveCallBack(nextionTurnValveOnOffCallbackFunc func) fn.			*
 *		Thus some timing control is offloaded to the Nextion.								*
 *********************************************************************************************/
 		void setHotWaterOnForMins(uint8_t howLong);
@@ -698,7 +796,7 @@ class Nextion {
 *				uint32_t time = Hours * 0x10000 + Minutes * 0x100 + Seconds					*
 *				display.setTime(time)														*
 *********************************************************************************************/
-void setTime(uint32_t time);
+		void setTime(uint32_t time);
 /**/
 /********************************************************************************************
 *		setDate(uint32_t date) - Sets the date on the Nextion.								*
@@ -712,6 +810,29 @@ void setTime(uint32_t time);
 *				display.setDate(date)														*
 *********************************************************************************************/
 		void setDate(uint32_t date);
+/**/
+/**/
+/********************************************************************************************
+*		getDateTime() - Gets the date and Time from Nextion.								*
+*-------------------------------------------------------------------------------------------*
+*		Gets the Date/Time set in the Nextion.												*
+*		The packed date/time is placed in the global variable packedDateTime.				*
+*		It can be decoded as shown below:													*
+*-------------------------------------------------------------------------------------------*
+*					dow    =   packedDateTime >> 29;	// (sun=0)							*
+*					year   = ( packedDateTime >> 21 ) & 0x7F + 2000;						*
+*					month  = ( packedDateTime >> 17 ) & 0x0F;								*
+*					day    = ( packedDateTime >> 12 ) & 0x1F;								*
+*					hour   = ( packedDateTime >>  6 ) & 0x1F;								*
+*					minute = ( packedDateTime )       & 0x3F;								*
+*-------------------------------------------------------------------------------------------*
+*		NOTE: This fn should only be called when the page holding the hotspot SndDateTime	*
+*		is displayed. On the new example HMI file it is on page 0.							*
+*-------------------------------------------------------------------------------------------*
+*		Usage:									        									*
+*				display.getDateTime()														*
+*********************************************************************************************/
+		bool getDateTime();
 /**/
 /********************************************************************************************
 *		setDaylightSavingOn( on) - Turn Nextion daylight saving variable on or off			*
@@ -750,9 +871,16 @@ void setTime(uint32_t time);
 /**/
 /********************************************************************************************
 *		setValveCallBack(nextionTurnValveOnOffCallbackFunc func) - passes the Nextion the   *
-*		call back function to turn a valve on or off										*
+*		call back fn to turn a valve on or off												*
 *********************************************************************************************/
 		void setValveCallBack(nextionTurnValveOnOffCallbackFunc func);
+/**/
+/********************************************************************************************
+*		setMcuDateTimeCallback(setMcuDateTimeCallbackFunc func) - passes the Nextion the	*
+*		call back fn to Set the MCU date and time. It also sets autoUpdateDateTime to true.	*
+*		This setMcuDateTimeCallbackFunc is called when Nextion reports a change in date/time*
+*********************************************************************************************/
+		void setMcuDateTimeCallback(setMcuDateTimeCallbackFunc func);
 /**/
 /********************************************************************************************
 *		setLedState - Sets the state of the leds in top, middle or bottom Row.				*
@@ -767,9 +895,9 @@ void setTime(uint32_t time);
 /**/
 /********************************************************************************************
 *		setNextionLeds actually sends command to Nextion to change the state of				*
-*		which leds ( top, middle or bottom row ) set with setLedState function.				*
+*		which leds ( top, middle or bottom row ) set with setLedState fn.					*
 *-------------------------------------------------------------------------------------------*
-*       Usage:   setNextionLeds( top );													*
+*       Usage:   setNextionLeds( top );														*
 *********************************************************************************************/
 		void setNextionLeds(topMidBottmType which);
 /**/
@@ -805,8 +933,8 @@ void setTime(uint32_t time);
 		void printTextToNextion(const char* p, bool transmit);
 /**/
 /********************************************************************************************
-*		printMoreTextToNextion - It is the same as the printTextToNextion function except	*
-*		that the page0.msg.txt=" is NOT sent.												*
+*		printMoreTextToNextion - It is the same as the printTextToNextion fn except	that	*
+*		the page0.msg.txt=" is NOT sent.													*
 *-------------------------------------------------------------------------------------------*
 *	       Usage:   printMoreTextToNextion( "This is a load of text for page1", true );		*
 *		NOTE: DO NOT use this without first using printTextToNextion( "text", false );		*
@@ -887,6 +1015,7 @@ void setTime(uint32_t time);
 		void viewDebugText(bool view);
 
 		elapsedMillis nextionTime;  // Just used for internal counting purposes.
+		uint8_t		  eepromBytesRead = 0; // stores qty of bytes
 
 	private:
 
@@ -903,6 +1032,9 @@ void setTime(uint32_t time);
 		uint8_t  txtBufCharPtr			= 0;
 		uint8_t  txtBufSize				= 0;
 		char     *txtBufPtr				= nullptr;
+		uint8_t  epromBufSize			= 0;
+		char	 *epromBufPtr			= nullptr;
+		bool	 autoUpdateMcuDateTime	= false;
 };
 
 #endif
