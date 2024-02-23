@@ -2,7 +2,7 @@
 
 **NOTE that the version has been raised to vs 1.71. This includes an important fix which overcomes the library being overwhelmed  when data arrives too fast from the Nextion, as is the case when two variables data is sent in close succession ands at high baud rates. The fault resulted in the second variables data being lost and an error occurring.**
 
-Other enhancements have been made to the library, described in the Nextion.h file, and in README-Addendum.md
+Other enhancements have been made to the library, described in the Nextion.h file, and in README-Addendum.md (yet to be published).
 
 
 
