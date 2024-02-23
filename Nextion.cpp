@@ -16,6 +16,7 @@ Nextion::setNextionBaudCallbackFunc			SetTeensyBaud;
 bool	 nextionAutoBaud = false;
 Nextion::nextionTurnValveOnOffCallbackFunc	turnValveOnOrOff;
 Nextion::setMcuDateTimeCallbackFunc			setMcuDateTime;
+Nextion::systemResetCallbackFunc			SystemReset;
 
 void Nextion::begin(uint32_t br, Nextion::setNextionBaudCallbackFunc func ){//} = nullptr) {
 	baudRate = br;
@@ -32,6 +33,12 @@ void Nextion::setMcuDateTimeCallback(Nextion::setMcuDateTimeCallbackFunc func) {
 	setMcuDateTime = func;
 	autoUpdateMcuDateTime = true;
 };
+
+void Nextion::setSystemResetCallback(systemResetCallbackFunc func) {
+	SystemReset = func;
+	systemResetCallBackSet = true;
+};
+
 #define debugGtReplyz
 bool Nextion::getReply(uint32_t timeout ){//} = 0) {
 
@@ -96,7 +103,7 @@ bool Nextion::getReply(uint32_t timeout ){//} = 0) {
 			while (n < len && timeOut < 10000) {
 				n = _s->available();
 			};
-			if (n >= len) {		//	vs 1.71 change:errors if data comming too fast. Changed from  if (n == len) {
+			if (n >= len) {		//	vs 1.71 change:errors if data coming too fast. Changed from  if (n == len) {
 				_s->readBytes((char*)&nextionEvent.reply8, len);
 			}
 			else
@@ -557,21 +564,21 @@ bool Nextion::GetNextionString() {
 			gotFF = (c == 0xFF);
 			if (gotFF) {
 				fFCount++;
-			}
-			else
+			} else
 			{
 				fFCount = 0;
 			}
 			if (txtBufCharPtr >= txtBufSize) {
 				Serial.print(c);
-			}
-			else
+			} else
 			{
 				txtBufPtr[ txtBufCharPtr ] = c;
 				txtBufCharPtr++;
 			}
 			t = 0;
-			while (!_s->available() && t < 10) {}  // 10 for potential low baud rate
+			while (!_s->available() && t < 10) {
+				delay(1);
+			}  // 10 for potential low baud rate
 
 		}
 		if (txtBufCharPtr >= txtBufSize) {
@@ -703,6 +710,12 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 						needsResponse  = false;
 					}
 					break;
+				case 0x0901: // System Reset
+					if (systemResetCallBackSet) {
+						SystemReset();
+						needsResponse = false;
+					}
+					break;
 				case 0xFA00: //Nextion Set baudrate back to 9600
 					SetTeensyBaud(9600);
 					if (nextionAutoBaud) {
@@ -823,16 +836,37 @@ void Nextion::setDate(uint32_t date) {
 	checkedComdCompleteOk = !checkComdComplete;
 #endif
 }
+/*
+bool GoodDateTime() {
+	uint32_t dt;
+	
+	dt = packedDateTime;
+	return ((((dt >> 21) & 0x7F) > 23) and (((dt >> 17) & 0x0F) < 13)) and (((dt >> 12) & 0x1F) < 32) and ((((dt >> 6) & 0x1F) < 24) and ((dt & 0x3F) < 60));
+}
+*/
 
 #define debugt4bz
 bool Nextion::getDateTime() {
+	uint32_t dt;
+
 	if (getPage() == sndDateTimeHotSPage) {
-		_s->print("SndDateTime,0");
+		_s->print("click SndDateTime,1");
 		_s->print("\xFF\xFF\xFF");
 		if (getReply(getNumVarTimeout)) {
 			packedDateTime = nextionEvent.reply7.number32bit;
-			return true;
+			dt = packedDateTime;
+#ifdef debugt4b
+			Serial.print("packedDateTime: "); Serial.println(packedDateTime);
+#endif
+			return ((((dt >> 21) & 0x7F) > 23) and (((dt >> 17) & 0x0F) < 13)) and (((dt >> 12) & 0x1F) < 32) and ((((dt >> 6) & 0x1F) < 24) and ((dt & 0x3F) < 60));
 		}
+		else {
+			Serial.println("Timeout");
+		}
+	}
+	else
+	{
+		Serial.println("Wrong Page");
 	}
 	return false;
 #ifdef bkcmd1or3allowed
@@ -1157,7 +1191,11 @@ bool Nextion::setDaylightSavingOn(bool on) {
 	return setNumVarValue("bst", on);
 };
 
-/********************************************************************************************
+bool Nextion::getDaylightSavingOn() {
+	return ( getNumVarValue("bst") == 1 );
+}
+
+;/********************************************************************************************
 *		Set the TextBuffer to be used for Text Returned From Nextion					    *
 *********************************************************************************************/
 void Nextion::setTextBuffer(/*const*/ char* textMessage, uint8_t textBufSize) {

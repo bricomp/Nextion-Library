@@ -116,6 +116,7 @@ Revision		    Date		Author			Description
 (***********************************************************************************************************************************)
   1.71  19/02/2024  Robert E Bridges	- GetReply() changed. An error could occur if the Nextion data was coming too fast.
 										- Added getPage()										- works with the NEW example HMI.
+  1.72  22/02/2024  Robert E Bridges    - Added getDaylightSavingOn()
 */
 
 #include "Arduino.h"
@@ -330,9 +331,10 @@ class Nextion {
 		typedef void (*setNextionBaudCallbackFunc) (uint32_t);				// create function pointer type
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
 		typedef void (*setMcuDateTimeCallbackFunc) ();						// create function pointer type
+		typedef void (*systemResetCallbackFunc) ();							// create function pointer type
 
-		const char		revision[5]			= "1.71";
-		const uint16_t  revisionNum			= 171;
+		const char		revision[5]			= "1.72";
+		const uint16_t  revisionNum			= 172;
 
 		uint32_t		baudRate			= 9600;
 		const uint32_t	resetNextionBaud	= baudRate;
@@ -349,6 +351,7 @@ class Nextion {
 		bool			nextionDateTimeUpdt = false;
 		uint32_t		packedDateTime		= 0;
 		int32_t			sndDateTimeHotSPage	= 0;
+		bool			daylightSaving		= false;
 
 		nextionEventType nextionEvent;
 
@@ -390,6 +393,7 @@ class Nextion {
 *										the date/time.										*
 *										This will set nextionDateTimeUpdt to false.			*
 *		sndDateTimeHotSPage = 0			The page nuumber holding the sndDateTime Hotspot.	*
+*		daylightSaving      = false     Set when time from Nextion packedDateTime decoded.	*
 *																							*
 *********************************************************************************************/
 /**/
@@ -802,8 +806,8 @@ class Nextion {
 *		setDate(uint32_t date) - Sets the date on the Nextion.								*
 *-------------------------------------------------------------------------------------------*
 *		The time is sent as HEX YYMMDD in the variable "page0.SetDate=YYMMDD0xFF0xFF0xFF"	*
-*       When the Nextion sees that StDate is not zero it sets the Nextion date.    			*
-*		The StDate variable is then set to 0.												*
+*       When the Nextion sees that SetDate is not zero it sets the Nextion date.    		*
+*		The SetDate variable is then set to 0.												*
 *-------------------------------------------------------------------------------------------*
 *		Usage:									        									*
 *				uint32_t date = (Year-2000) * 0x10000 + Month * 0x100 + Day					*
@@ -819,7 +823,8 @@ class Nextion {
 *		The packed date/time is placed in the global variable packedDateTime.				*
 *		It can be decoded as shown below:													*
 *-------------------------------------------------------------------------------------------*
-*					dow    =   packedDateTime >> 29;	// (sun=0)							*
+*					dow    =   packedDateTime >> 29;  // (sun=0)							*
+*					dst	   = ( packedDateTime >> 28 ) & 0x01;	(known as BST in the UK)	*
 *					year   = ( packedDateTime >> 21 ) & 0x7F + 2000;						*
 *					month  = ( packedDateTime >> 17 ) & 0x0F;								*
 *					day    = ( packedDateTime >> 12 ) & 0x1F;								*
@@ -842,6 +847,14 @@ class Nextion {
 *		   setDaylightSavingOn( false ) - Turn off             								*
 *********************************************************************************************/
 		bool setDaylightSavingOn(bool on);
+/**/
+/********************************************************************************************
+*		getDaylightSavingOn() - Returns Nextion daylight saving variable (true=on)			*
+*-------------------------------------------------------------------------------------------*
+*		Usage:									        									*
+*		   getDaylightSavingOn()				              								*
+*********************************************************************************************/
+		bool getDaylightSavingOn();
 /**/
 /********************************************************************************************
 *		turnDebugOn(bool on) - Turn Nextion debug variable on or off						*
@@ -881,6 +894,12 @@ class Nextion {
 *		This setMcuDateTimeCallbackFunc is called when Nextion reports a change in date/time*
 *********************************************************************************************/
 		void setMcuDateTimeCallback(setMcuDateTimeCallbackFunc func);
+/**/
+/********************************************************************************************
+*		setSystemResetCallback(systemResetCallbackFunc func) - passes the Nextion the		*
+*		call back fn to carry out a System Reset.											*
+*********************************************************************************************/
+		void setSystemResetCallback(systemResetCallbackFunc func);
 /**/
 /********************************************************************************************
 *		setLedState - Sets the state of the leds in top, middle or bottom Row.				*
@@ -1035,6 +1054,7 @@ class Nextion {
 		uint8_t  epromBufSize			= 0;
 		char	 *epromBufPtr			= nullptr;
 		bool	 autoUpdateMcuDateTime	= false;
+		bool	 systemResetCallBackSet = false;
 };
 
 #endif

@@ -30,7 +30,7 @@ I mostly communicate with the nextion through the passing of data into/from nume
 
 I have a TimerEvent which runs at 600mS intervals, slow I know but fast enough for my current needs.
 
-When, for example, this timer notices that the numeric variable "SetTime" is not zero it takes the valueb from this variable and sets the Nextion time. 
+When, for example, this timer notices that the numeric variable "SetTime" is not zero it takes the value from this variable and sets the Nextion time. 
 
 The format of the data in this variable is (in HEX) "HHMMSS".
 After having set the time the variable is set back to 0 again.
@@ -83,6 +83,7 @@ A suitable function is shown below:-
 			NextionDisplay.end();
 			delay(100);
 			NextionDisplay.begin(baud);
+			NextionDisplay.clear();		// IMPORTANT NOTE ADDITION from previous release.
 		}
 
 ​		...now we must set the baud rate on the Teensy port:-
@@ -472,11 +473,11 @@ In the first case gets the value of Nextion Variable `varName`.
 
 In the second case returns the value of a variable suffix as in: `getNumVarValue( "x0","ws1")` to get the number of dp for a Nextion float variable.  NOTE that the "." in "x0.ws1" is provided by the function.
 
-In both cases thefunction waits for up to 1000ms for a reply. If no reply returns -1.
+In both cases the function waits for up to 1000ms for a reply. If no reply returns -1.
 
 The wait time is controlled by the variable `getNumVarTimeout` which is initially  set to 1000 ms.
 
-Since -1 can alse be a valid return value nextionError is set on error and the error is reported in errorCode as errorReadingNumber_1 or errorReadingNumber_2 dependant upon which form of getNumVarValue is used
+Since -1 can also be a valid return value nextionError is set on error and the error is reported in errorCode as errorReadingNumber_1 or errorReadingNumber_2 dependant upon which form of getNumVarValue is used
 
 In reality this command should only be sent when the Nextion Serial buffer is empty otherwise, any reply may be from previously stacked up Nextion commands and therefore be erroneous.
 
