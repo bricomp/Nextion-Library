@@ -17,11 +17,12 @@ bool	 nextionAutoBaud = false;
 Nextion::nextionTurnValveOnOffCallbackFunc	turnValveOnOrOff;
 Nextion::setMcuDateTimeCallbackFunc			setMcuDateTime;
 Nextion::systemResetCallbackFunc			SystemReset;
+Nextion::buttonPressCallbackFunc			ButtonPress;							// create function pointer type
 
 void Nextion::begin(uint32_t br, Nextion::setNextionBaudCallbackFunc func ){//} = nullptr) {
 	baudRate = br;
 	if (func) {
-		SetTeensyBaud = func;
+		SetTeensyBaud   = func;
 		nextionAutoBaud = true;
 	}
 };
@@ -30,13 +31,19 @@ void Nextion::setValveCallBack(Nextion::nextionTurnValveOnOffCallbackFunc func) 
 };
 
 void Nextion::setMcuDateTimeCallback(Nextion::setMcuDateTimeCallbackFunc func) {
-	setMcuDateTime = func;
+	setMcuDateTime		  = func;
 	autoUpdateMcuDateTime = true;
 };
 
 void Nextion::setSystemResetCallback(systemResetCallbackFunc func) {
-	SystemReset = func;
-	systemResetCallBackSet = true;
+	SystemReset				= func;
+	systemResetCallBackSet  = true;
+};
+
+void Nextion::setButtonPressCallback(buttonPressCallbackFunc func) {
+
+	ButtonPress		  = func;
+	buttonCallBackSet = true;
 };
 
 #define debugGtReplyz
@@ -375,9 +382,9 @@ bool Nextion::commsOk() {
 	nextionEvent.id = 0;
 	_s->print("sendme\xFF\xFF\xFF");
 	_s->flush();
-	delay(10);
+	delay(20); // was delay(10); vs 1.73
 #ifdef debugc
-	delay(10);
+//	delay(10);
 //	Serial.print("in commsOk ");
 #endif
 	ok = getReply();
@@ -710,9 +717,32 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 						needsResponse  = false;
 					}
 					break;
-				case 0x0901: // System Reset
+				case 0x0900: // System Reset
 					if (systemResetCallBackSet) {
 						SystemReset();
+						needsResponse = false;
+					}
+					break;
+				case 0x0901:
+				case 0x0902:
+				case 0x0903:
+				case 0x0904:
+				case 0x0905:
+				case 0x0906:
+				case 0x0907:
+				case 0x0908:
+				case 0x0909:
+				case 0x090A:
+				case 0x090B:
+				case 0x090C:
+				case 0x090D:
+				case 0x090E:
+				case 0x090F:
+				case 0x0910:
+					uint32_t idx;
+					idx = zz % 0x900;
+					if (buttonCallBackSet) {
+						ButtonPress(idx);
 						needsResponse = false;
 					}
 					break;

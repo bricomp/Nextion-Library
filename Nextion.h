@@ -116,7 +116,8 @@ Revision		    Date		Author			Description
 (***********************************************************************************************************************************)
   1.71  19/02/2024  Robert E Bridges	- GetReply() changed. An error could occur if the Nextion data was coming too fast.
 										- Added getPage()										- works with the NEW example HMI.
-  1.72  22/02/2024  Robert E Bridges    - Added getDaylightSavingOn()
+  1.72  22/02/2024  Robert E Bridges    - Added getDaylightSavingOn(), setSystemResetCallback(), setButtonPressCallback().
+
 */
 
 #include "Arduino.h"
@@ -207,7 +208,7 @@ struct nextionEventType {
 		rep7IntType		reply7int;
 		rep8Type		reply8;
 		resetReplyType	resetReply;      //-- The largest Type
-		uint8_t			data[sizeof(resetReplyType)]; // Just so that data can be annalysed for debug purposes
+		uint8_t			data[sizeof(resetReplyType)]; // Just so that data can be analysed for debug purposes
 	};
 }; // nextionEvent;
 #pragma pack(pop)
@@ -332,6 +333,7 @@ class Nextion {
 		typedef void (*nextionTurnValveOnOffCallbackFunc) (uint32_t, bool);	// create function pointer type
 		typedef void (*setMcuDateTimeCallbackFunc) ();						// create function pointer type
 		typedef void (*systemResetCallbackFunc) ();							// create function pointer type
+		typedef void (*buttonPressCallbackFunc) (uint32_t);					// create function pointer type
 
 		const char		revision[5]			= "1.72";
 		const uint16_t  revisionNum			= 172;
@@ -883,23 +885,29 @@ class Nextion {
 		bool turnScreenDimOn(bool on);
 /**/
 /********************************************************************************************
-*		setValveCallBack(nextionTurnValveOnOffCallbackFunc func) - passes the Nextion the   *
+*		setValveCallBack(nextionTurnValveOnOffCallbackFunc func) - passes to Nextion the	*
 *		call back fn to turn a valve on or off												*
 *********************************************************************************************/
 		void setValveCallBack(nextionTurnValveOnOffCallbackFunc func);
 /**/
 /********************************************************************************************
-*		setMcuDateTimeCallback(setMcuDateTimeCallbackFunc func) - passes the Nextion the	*
+*		setMcuDateTimeCallback(setMcuDateTimeCallbackFunc func) - passes to Nextion the		*
 *		call back fn to Set the MCU date and time. It also sets autoUpdateDateTime to true.	*
 *		This setMcuDateTimeCallbackFunc is called when Nextion reports a change in date/time*
 *********************************************************************************************/
 		void setMcuDateTimeCallback(setMcuDateTimeCallbackFunc func);
 /**/
 /********************************************************************************************
-*		setSystemResetCallback(systemResetCallbackFunc func) - passes the Nextion the		*
+*		setSystemResetCallback(systemResetCallbackFunc func) - passes to Nextion the		*
 *		call back fn to carry out a System Reset.											*
 *********************************************************************************************/
 		void setSystemResetCallback(systemResetCallbackFunc func);
+/**/
+/********************************************************************************************
+*		setButtonPressCallback(buttonPressCallbackFunc func) - passesm to Nextion then		*
+*		call back fn to carry out a button # which press event.								*
+*********************************************************************************************/
+		void setButtonPressCallback(buttonPressCallbackFunc func);
 /**/
 /********************************************************************************************
 *		setLedState - Sets the state of the leds in top, middle or bottom Row.				*
@@ -1055,6 +1063,7 @@ class Nextion {
 		char	 *epromBufPtr			= nullptr;
 		bool	 autoUpdateMcuDateTime	= false;
 		bool	 systemResetCallBackSet = false;
+		bool	 buttonCallBackSet	    = false;
 };
 
 #endif
