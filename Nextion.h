@@ -961,6 +961,23 @@ class Nextion {
 		void clearLeds();
 /**/
 /********************************************************************************************
+*		click(const char* objectToClick, bool touch)										*
+*		click(uint8_t page, const char* objectToClick, bool touch)							*
+*-------------------------------------------------------------------------------------------*
+*		Two options, the first assumes that the Nextion is on the page where the item to be	*
+*		clicked is located, trhe second version will actually change to the page given		*
+*		before execuring the click function.												*
+*-------------------------------------------------------------------------------------------*
+*       Usage: click("MyFavouriteHotspot", true ) sends click MyFavouriteHotSpot,1			*
+*		to cause a Touch Press Event, passing false would cause a TouchRelease event.		*
+*		Or: click(4, "MyFavouriteHotspot", true ) sends:-									*
+*										page(4)												*
+*										click MyFavouriteHotSpot,1							*
+*********************************************************************************************/
+		bool click(const char* objectToClick, bool touch);
+		bool click(uint8_t page, const char* objectToClick, bool touch);
+/**/
+/********************************************************************************************
 *		printTimeEmbeddedTextToNextion - Sends Text to Nextion to be placed in variable		*
 *		page0.msg.txt. If transmit is set to true the text is terminated with a "			*
 *		character and m0,1 is clicked to cause the screen on page1 to be updated using		*

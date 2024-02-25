@@ -222,6 +222,26 @@ void Nextion::finishNextionTextTransmittion() {
 #endif
 }
 
+bool Nextion::click(const char* objectToClick, bool touch) {
+	bool ok;
+	_s->print("click "); _s->print(objectToClick); _s->print(","); _s->print(touch); _s->print("\xFF\xFF\xFF");
+
+	ok = !getReply(100);
+	return ok;
+}
+
+bool Nextion::click(uint8_t page, const char* objectToClick, bool touch) {
+//	bool ok;
+	gotoPage(page);
+	return click(objectToClick, touch);
+/*
+	_s->print("click "); _s->print(objectToClick); _s->print(","); _s->print(touch); _s->print("\xFF\xFF\xFF");
+
+	ok = !getReply(100);
+	return ok;
+*/
+}
+
 void Nextion::pntTextToNextion(bool embedTimeInTxt, const char* p, bool transmit) {
 #ifdef debugt
 	Serial.print("printTextToNextion: ");
@@ -1171,7 +1191,7 @@ bool Nextion::setGlobalStrVarValue(uint8_t p, uint8_t b, const char* var) {
 	SendGlobalAddress(p, b);
 	_s->print("txt=\""); _s->print(var); _s->print("\"");  _s->print("\xFF\xFF\xFF");
 
-	ok = !getReply(100);
+	ok = !getReply(50);
 #ifdef bkcmd1or3allowed
 	if (ok) checkedComdCompleteOk = !checkComdComplete;
 #endif
