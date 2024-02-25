@@ -94,12 +94,12 @@ Revision		    Date	    Author		Description
 								-   added fns setEEPromDataBuffer and getEEPromData		- works with the NEW example HMI.
 								-	added eepromDataChanged				- works with the NEW example HMI.
 (***********************************************************************************************************************************)
-(*										Below at vs 1.71 is a MAJOR Potential Error Fix	   *)
+(*										Below at vs 1.71 is a MAJOR Potential Error Fix											   *)
 (***********************************************************************************************************************************)
   1.71  		19/02/2024  	Robert E Bridges	- GetReply() changed. An error could occur if the Nextion data was coming too fast.
 								- Added getPage()						- works with the NEW example HMI.
-  1.72  		22/02/2024  	Robert E Bridges    	- Added getDaylightSavingOn(), setSystemResetCallback()
-
+  1.72  		22/02/2024  	Robert E Bridges    	- Added getDaylightSavingOn(), setSystemResetCallback(), setButtonPressCallback(),
+									setGlobalNumVarValue(), setGlobalStrVarValue(),
 
 /*********************************************************************************************************
 *		These are all the data types used to communicate with the Nextion. More correctly		*
@@ -154,7 +154,6 @@ struct rep7IntType {
 	};
 	uint32_t	nextTerm;
 };
-
 
 struct rep8Type {
 	union {
@@ -722,6 +721,19 @@ class Nextion {
 		bool setNumVarValue(const char* varName, int32_t var);
 
 /*********************************************************************************************************
+*		setGlobalNumVarValue( uint8_t p, uint8_t b, int32_t var);					*
+*--------------------------------------------------------------------------------------------------------*
+*		Sends p[p].b[b].val=var is sent to the nextion.						*
+*		This fn CANNOT be used for Program.S variables						*
+*--------------------------------------------------------------------------------------------------------*
+*		The p and b id's MUST exist and be appropriate for the type of data being sent.		*
+*		NOTE that p and vb numbers can change when items are added or deleted from			*
+*		the Nextion display rendering your program invalid.						*
+*		Much care MUST be taken when using global variables.						*
+**********************************************************************************************************/
+		bool setGlobalNumVarValue(uint8_t p, uint8_t b, int32_t var);
+
+/*********************************************************************************************************
 *		bool setNumVarFloat(const char* varName, float_t fvar, uint8_t dp, bool round)		*
 *			- Sets Nextion Variable to fvar, with dp decimal points rounded to dp (or not).	*
 *--------------------------------------------------------------------------------------------------------*
@@ -745,6 +757,20 @@ class Nextion {
 *		The varName MUST exist.                           						*
 **********************************************************************************************************/
 		bool setStrVarValue(const char* varName, const char* var);
+
+/*********************************************************************************************************
+*		setGlobalStrVarValue( uint8_t p, uint8_t b, const char* var);				*
+*--------------------------------------------------------------------------------------------------------*
+*		Sends p[p].b[b].txt="var" is sent to the nextion.						*
+*--------------------------------------------------------------------------------------------------------*
+*		The p and b id's MUST exist and be appropriate for the type of data being sent.		*
+*		NOTE that p and vb numbers can change when items are added or deleted from			*
+*		the Nextion display rendering your program invalid.						*
+*		Much care MUST be taken when using global variables.						*
+**********************************************************************************************************/
+		bool setGlobalStrVarValue(uint8_t p, uint8_t b, const char* var);
+
+
 
 /*********************************************************************************************************
 *		askSerialBufferClear() - Ask Nextion if Serial Buffer Clear (Empty)				*
@@ -799,6 +825,7 @@ class Nextion {
 **********************************************************************************************************/
 		void setHotWaterOnForMins(uint8_t howLong);
 
+
 /*********************************************************************************************************
 *		setTime(uint32_t time) - Sets the time on the Nextion.					*
 *--------------------------------------------------------------------------------------------------------*
@@ -824,8 +851,6 @@ class Nextion {
 *				display.setDate(date)								*
 **********************************************************************************************************/
 		void setDate(uint32_t date);
-
-
 /*********************************************************************************************************
 *		getDateTime() - Gets the date and Time from Nextion.						*
 *--------------------------------------------------------------------------------------------------------*
@@ -848,6 +873,8 @@ class Nextion {
 *				display.getDateTime()								*
 **********************************************************************************************************/
 		bool getDateTime();
+
+
 
 /*********************************************************************************************************
 *		turnDebugOn(bool on) - Turn Nextion debug variable on or off				*
@@ -873,8 +900,6 @@ class Nextion {
 *		   turnScreenDimOn( false ) - Turn Dim off             					*
 **********************************************************************************************************/
 		bool turnScreenDimOn(bool on);
-
-
 
 /*********************************************************************************************************
 *		printAnyReturnCharacters(uint32_t nextionTime, uint8_t id).					*
@@ -902,11 +927,19 @@ class Nextion {
 **********************************************************************************************************/
 		void setMcuDateTimeCallback(setMcuDateTimeCallbackFunc func);
 
+
+
 /*********************************************************************************************************
 *		setSystemResetCallback(systemResetCallbackFunc func) - passes the Nextion the		*
 *		call back fn to carry out a System Reset.							*
 **********************************************************************************************************/
 		void setSystemResetCallback(systemResetCallbackFunc func);
+
+/*********************************************************************************************************
+*		setButtonPressCallback(buttonPressCallbackFunc func) - passesm to Nextion then		*
+*		call back fn to carry out a button # which press event.					*
+**********************************************************************************************************/
+		void setButtonPressCallback(buttonPressCallbackFunc func);
 
 /*********************************************************************************************************
 *		setLedState - Sets the state of the leds in top, middle or bottom Row.			*
@@ -926,6 +959,7 @@ class Nextion {
 *       	Usage:   setNextionLeds( top );								*
 **********************************************************************************************************/
 		void setNextionLeds(topMidBottmType which);
+
 /*********************************************************************************************************
 *		clearLeds sets the leds state variable to all (top, middle and bottom) off.		*
 *          	Uses setNextionLeds to send command to update all rows on Nextion.				*
@@ -945,6 +979,8 @@ class Nextion {
 *       	AFTER the first character.         This is carried out by the Nextion display.		*
 **********************************************************************************************************/
 		void printTimeEmbeddedTextToNextion(const char* p, bool transmit);
+
+
 
 /*********************************************************************************************************
 *		printTextToNextion - Sends Text to Nextion to be placed in variable				*
@@ -976,8 +1012,6 @@ class Nextion {
 *		NOTE: DO NOT use this without first using printTextToNextion( "text", false );		*
 **********************************************************************************************************/
 		void printNumericText(uint32_t num, bool transmit);
-
-
 
 /*********************************************************************************************************
 *		finishNextionTextTransmittion() - Terminate the text transmitted to Nextion with a  	*
