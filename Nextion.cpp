@@ -740,7 +740,7 @@ bool Nextion::respondToReply() {   //returns true if something needs responding 
 				case 0x090F:
 				case 0x0910:
 					uint32_t idx;
-					idx = zz % 0x900;
+					idx = zz % 0x0900;
 					if (buttonCallBackSet) {
 						ButtonPress(idx);
 						needsResponse = false;
@@ -1132,6 +1132,44 @@ bool Nextion::setNumVarValue(const char* varName, int32_t var) {
 	Serial.print(varName); Serial.print("="); Serial.print(var); Serial.println("\xFF\xFF\xFF");
 #endif
 	_s->print(varName); _s->print("="); _s->print(var); _s->print("\xFF\xFF\xFF");
+
+	ok = !getReply(100);
+#ifdef bkcmd1or3allowed
+	if (ok) checkedComdCompleteOk = !checkComdComplete;
+#endif
+	return ok;
+};
+
+void Nextion::SendGlobalAddress(uint8_t p, uint8_t b) {
+	_s->print("p["); _s->print(p); _s->print("].b["); _s->print(b); _s->print("].");
+};
+
+bool Nextion::setGlobalNumVarValue(uint8_t p, uint8_t b, int32_t var){
+
+	bool		  ok = false;
+
+#ifdef debug1
+	Serial.print(varName); Serial.print("="); Serial.print(var); Serial.println("\xFF\xFF\xFF");
+#endif
+	SendGlobalAddress(p, b);
+	_s->print("val="); _s->print(var); _s->print("\xFF\xFF\xFF");
+
+	ok = !getReply(100);
+#ifdef bkcmd1or3allowed
+	if (ok) checkedComdCompleteOk = !checkComdComplete;
+#endif
+	return ok;
+};
+
+bool Nextion::setGlobalStrVarValue(uint8_t p, uint8_t b, const char* var) {
+
+	bool		  ok = false;
+
+#ifdef debug1
+	Serial.print(varName); Serial.print("="); Serial.print(var); Serial.println("\xFF\xFF\xFF");
+#endif
+	SendGlobalAddress(p, b);
+	_s->print("txt=\""); _s->print(var); _s->print("\"");  _s->print("\xFF\xFF\xFF");
 
 	ok = !getReply(100);
 #ifdef bkcmd1or3allowed

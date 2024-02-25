@@ -116,7 +116,8 @@ Revision		    Date		Author			Description
 (***********************************************************************************************************************************)
   1.71  19/02/2024  Robert E Bridges	- GetReply() changed. An error could occur if the Nextion data was coming too fast.
 										- Added getPage()										- works with the NEW example HMI.
-  1.72  22/02/2024  Robert E Bridges    - Added getDaylightSavingOn(), setSystemResetCallback(), setButtonPressCallback().
+  1.72  22/02/2024  Robert E Bridges    - Added getDaylightSavingOn(), setSystemResetCallback(), setButtonPressCallback(),
+											setGlobalNumVarValue(),
 
 */
 
@@ -301,7 +302,7 @@ const uint8_t ioOperationFailed			= 0x1F;	// bkcmd 2,3	0x1F 0xFF 0xFF 0xFF						
 const uint8_t invalidEscapeChar			= 0x20;	// bkcmd 2,3	0x20 0xFF 0xFF 0xFF							Returned when an unsupported escape uint8_tacter is used
 const uint8_t variableNameToLong		= 0x23;	// bkcmd 2,3	0x23 0xFF 0xFF 0xFF							Returned when variable name is too long.Max length is 29 characters: 
 												//															14 for page + “.” + 14 for component.
-												// // DON'T USE ANY MORE - USE variableNameTooLong shown below
+												// // DON'T USE "variableNameToLong" ANY MORE - USE variableNameTooLong shown below
 const uint8_t variableNameTooLong		= 0x23;	// bkcmd 2,3	0x23 0xFF 0xFF 0xFF							Returned when variable name is too long.Max length is 29 characters: 
 												//															14 for page + “.” + 14 for component.
 const uint8_t serialBufferOverflow		= 0x24;	//	always		0x24 0xFF 0xFF 0xFF							Returned when a Serial Buffer overflow occurs	
@@ -694,7 +695,7 @@ class Nextion {
 *		If no EEPromDataBuffer has been setup it will simply return false.					*
 *********************************************************************************************/
 		bool getEEPromData(uint32_t start, uint8_t len);
-		/**/
+/**/
 /********************************************************************************************
 *		setNumVarValue(const char* varName, int32_t var ) - Sets Nextion Variable to var.	*
 *-------------------------------------------------------------------------------------------*
@@ -707,6 +708,19 @@ class Nextion {
 *		The varName MUST exist.                           									*
 *********************************************************************************************/
 		bool setNumVarValue(const char* varName, int32_t var);
+/**/
+/********************************************************************************************
+*		setGlobalNumVarValue( uint8_t p, uint8_t b, int32_t var);							*
+*-------------------------------------------------------------------------------------------*
+*		Sends p[p].b[b].val=var is sent to the nextion.										*
+*		This fn CANNOT be used for Program.S variables										*
+*-------------------------------------------------------------------------------------------*
+*		The p and b id's MUST exist and be appropriate for the type of data being sent.		*
+*		NOTE that p and vb numbers can change when items are added or deleted from			*
+*		the Nextion display rendering your program invalid.									*
+*		Much care MUST be taken when using global variables.								*
+*********************************************************************************************/
+		bool setGlobalNumVarValue(uint8_t p, uint8_t b, int32_t var);
 /**/
 /********************************************************************************************
 *		bool setNumVarFloat(const char* varName, float_t fvar, uint8_t dp, bool round)		*
@@ -737,6 +751,18 @@ class Nextion {
 *********************************************************************************************/
 		bool setStrVarValue(const char* varName, const char* var);
 /**/
+/********************************************************************************************
+*		setGlobalStrVarValue( uint8_t p, uint8_t b, const char* var);							*
+*-------------------------------------------------------------------------------------------*
+*		Sends p[p].b[b].txt="var" is sent to the nextion.										*
+*-------------------------------------------------------------------------------------------*
+*		The p and b id's MUST exist and be appropriate for the type of data being sent.		*
+*		NOTE that p and vb numbers can change when items are added or deleted from			*
+*		the Nextion display rendering your program invalid.									*
+*		Much care MUST be taken when using global variables.								*
+*********************************************************************************************/
+		bool setGlobalStrVarValue(uint8_t p, uint8_t b, const char* var);
+		/**/
 /********************************************************************************************
 *		askSerialBufferClear() - Ask Nextion if Serial Buffer Clear (Empty)					*
 *-------------------------------------------------------------------------------------------*
@@ -1046,6 +1072,7 @@ class Nextion {
 
 	private:
 
+		void SendGlobalAddress(uint8_t p, uint8_t b);
 		bool GetNextionString();
 		void pntTextToNextion(bool embedTimeInTxt, const char* p, bool transmit);
 
